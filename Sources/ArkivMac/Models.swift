@@ -69,6 +69,13 @@ enum MediaKind: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum FileSortMode: String, CaseIterable, Identifiable {
+    case createdAt = "Created"
+    case name = "Name"
+
+    var id: String { rawValue }
+}
+
 enum FileReadiness: String {
     case downloading = "Downloading"
     case ready = "Ready"

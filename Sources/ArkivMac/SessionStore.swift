@@ -14,6 +14,8 @@ final class SessionStore: ObservableObject {
     @Published var targetName = ""
     @Published var detectedFiles: [DetectedFile] = []
     @Published var filter: MediaKind = .all
+    @Published var sortMode: FileSortMode = .createdAt
+    @Published var groupsByType = false
     @Published var searchText = ""
     @Published var customExtensions = "jpg,jpeg,png,gif,mp4,mov"
     @Published var includeRescueMode = true
@@ -53,9 +55,21 @@ final class SessionStore: ObservableObject {
     }
 
     var filteredFiles: [DetectedFile] {
-        detectedFiles.filter { file in
-            matchesFilter(file) && matchesSearch(file)
-        }
+        detectedFiles
+            .filter { file in
+                matchesFilter(file) && matchesSearch(file)
+            }
+            .sorted { lhs, rhs in
+                switch sortMode {
+                case .createdAt:
+                    if lhs.createdAt == rhs.createdAt {
+                        return lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
+                    }
+                    return lhs.createdAt > rhs.createdAt
+                case .name:
+                    return lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
+                }
+            }
     }
 
     var selectedReadyFiles: [DetectedFile] {
@@ -75,6 +89,25 @@ final class SessionStore: ObservableObject {
     var readyCount: Int { detectedFiles.filter { $0.readiness == .ready }.count }
     var downloadingCount: Int { detectedFiles.filter { $0.readiness == .downloading }.count }
     var selectedReadySize: Int64 { selectedReadyFiles.reduce(0) { $0 + $1.sizeBytes } }
+
+    var groupedFilteredFiles: [(kind: MediaKind, files: [DetectedFile])] {
+        guard groupsByType else {
+            return [(.all, filteredFiles)]
+        }
+
+        return ([MediaKind.image, .video, .other]).compactMap { kind in
+            let files = filteredFiles.filter { $0.kind == kind }
+            return files.isEmpty ? nil : (kind, files)
+        }
+    }
+
+    func setSortMode(_ mode: FileSortMode) {
+        sortMode = mode
+    }
+
+    func toggleGroupByType() {
+        groupsByType.toggle()
+    }
 
     func toggleAppearance() {
         usesDarkAppearance.toggle()

@@ -98,11 +98,6 @@ private struct Toolbar: View {
                         .frame(height: 0.5)
                 }
 
-            Capsule()
-                .fill(theme.quaternary)
-                .frame(width: 34, height: 5)
-                .padding(.top, 8)
-
             HStack(spacing: 9) {
                 if showsStatus {
                     StatusDot(paused: store.runState == .paused)
@@ -121,11 +116,11 @@ private struct Toolbar: View {
 
                 trailing
             }
-            .padding(.top, 20)
+            .padding(.top, 15)
             .padding(.horizontal, 12)
-            .padding(.bottom, 11)
+            .padding(.bottom, 10)
         }
-        .frame(height: 58)
+        .frame(height: 52)
         .contentShape(Rectangle())
     }
 }
@@ -318,13 +313,10 @@ private struct MonitoringPanel: View {
                 }
             }
 
-            VStack(spacing: 10) {
-                StatPillBar()
-
-                HStack(spacing: 8) {
-                    SearchField()
-                    FilterMenu()
-                }
+            VStack(spacing: 8) {
+                CompactStatsBar()
+                SearchField()
+                TypeFilterRow()
 
                 if store.filter == .custom {
                     SearchField(custom: true)
@@ -335,8 +327,9 @@ private struct MonitoringPanel: View {
             .padding(.bottom, 8)
 
             HStack {
-                SectionLabel(store.searchText.isEmpty && store.filter == .all ? "Detected files" : "\(store.filteredFiles.count) matching")
+                SectionLabel(listTitle)
                 Spacer()
+                ListOptionsMenu()
                 Button(store.allFilteredReadySelected ? "Deselect all" : "Select all") {
                     store.toggleAllFilteredReady()
                 }
@@ -356,12 +349,21 @@ private struct MonitoringPanel: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 26)
                     } else {
-                        ForEach(Array(store.filteredFiles.enumerated()), id: \.element.id) { index, file in
-                            if index > 0 {
-                                DividerLine(inset: 47)
+                        ForEach(Array(store.groupedFilteredFiles.enumerated()), id: \.offset) { groupIndex, group in
+                            if store.groupsByType {
+                                if groupIndex > 0 {
+                                    DividerLine(inset: 0)
+                                }
+                                GroupHeader(kind: group.kind, count: group.files.count)
                             }
-                            FileRow(file: file)
-                                .padding(.horizontal, 4)
+
+                            ForEach(Array(group.files.enumerated()), id: \.element.id) { index, file in
+                                if index > 0 {
+                                    DividerLine(inset: 47)
+                                }
+                                FileRow(file: file)
+                                    .padding(.horizontal, 4)
+                            }
                         }
                     }
                 }
@@ -389,6 +391,16 @@ private struct MonitoringPanel: View {
                 }
             }
         }
+    }
+
+    private var listTitle: String {
+        if store.groupsByType {
+            return "Grouped by type"
+        }
+        if store.searchText.isEmpty && store.filter == .all {
+            return "Detected files"
+        }
+        return "\(store.filteredFiles.count) matching"
     }
 }
 
@@ -632,30 +644,19 @@ private struct SectionLabel: View {
     }
 }
 
-private struct StatPillBar: View {
-    @Environment(\.colorScheme) private var colorScheme
+private struct CompactStatsBar: View {
     @EnvironmentObject private var store: SessionStore
 
     var body: some View {
-        let theme = ArkivTheme(scheme: colorScheme)
-
-        HStack(spacing: 0) {
-            StatCell(value: store.detectedCount, label: "Detected", accent: false)
-            Rectangle().fill(theme.separator).frame(width: 0.5)
-            StatCell(value: store.readyCount, label: "Ready", accent: false)
-            Rectangle().fill(theme.separator).frame(width: 0.5)
-            StatCell(value: store.selectedCount, label: "Selected", accent: true)
+        HStack(spacing: 6) {
+            CompactStat(value: store.detectedCount, label: "Detected", accent: false)
+            CompactStat(value: store.readyCount, label: "Ready", accent: false)
+            CompactStat(value: store.selectedCount, label: "Selected", accent: true)
         }
-        .background(theme.fill)
-        .overlay {
-            RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
-                .strokeBorder(theme.separator, lineWidth: 0.5)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
     }
 }
 
-private struct StatCell: View {
+private struct CompactStat: View {
     @Environment(\.colorScheme) private var colorScheme
     let value: Int
     let label: String
@@ -664,19 +665,129 @@ private struct StatCell: View {
     var body: some View {
         let theme = ArkivTheme(scheme: colorScheme)
 
-        VStack(spacing: 1) {
+        HStack(spacing: 5) {
             Text("\(value)")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .monospacedDigit()
-                .tracking(-0.25)
                 .foregroundStyle(accent ? theme.accent : theme.text)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(accent ? theme.accent : theme.tertiary)
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(accent ? theme.accent : theme.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
-        .background(accent ? theme.accentSoft : Color.clear)
+        .frame(height: 28)
+        .background(accent ? theme.accentSoft : theme.fill)
+        .clipShape(Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(accent ? theme.accent.opacity(0.35) : theme.separator, lineWidth: 0.5)
+        }
+    }
+}
+
+private struct TypeFilterRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        HStack(spacing: 6) {
+            ForEach(MediaKind.allCases) { kind in
+                Button {
+                    store.filter = kind
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: kind.menuSymbol)
+                            .font(.system(size: 12.5, weight: .medium))
+                        if kind == .all || kind == .custom {
+                            Text(kind == .all ? "All" : "Custom")
+                                .font(.system(size: 11.5, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(store.filter == kind ? .white : kind.typeColor(theme))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 30)
+                    .background(store.filter == kind ? kind.typeColor(theme) : theme.fill)
+                    .clipShape(Capsule())
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(store.filter == kind ? Color.clear : theme.separator, lineWidth: 0.5)
+                    }
+                }
+                .buttonStyle(.plain)
+                .help(kind == .all ? "All types" : kind.rawValue)
+            }
+        }
+    }
+}
+
+private struct ListOptionsMenu: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Menu {
+            Section("Rank by") {
+                Button {
+                    store.setSortMode(.createdAt)
+                } label: {
+                    Label("Time created", systemImage: store.sortMode == .createdAt ? "checkmark" : "clock")
+                }
+                Button {
+                    store.setSortMode(.name)
+                } label: {
+                    Label("Name", systemImage: store.sortMode == .name ? "checkmark" : "textformat")
+                }
+            }
+            Divider()
+            Button {
+                store.toggleGroupByType()
+            } label: {
+                Label(store.groupsByType ? "Ungroup files" : "Group by type", systemImage: store.groupsByType ? "checkmark" : "square.stack.3d.up")
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down")
+                Text(store.sortMode == .createdAt ? "Time" : "Name")
+            }
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(theme.secondary)
+            .padding(.horizontal, 8)
+            .frame(height: 24)
+            .background(theme.fill)
+            .clipShape(Capsule())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+}
+
+private struct GroupHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let kind: MediaKind
+    let count: Int
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        HStack(spacing: 6) {
+            Image(systemName: kind.fileSymbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(kind.typeColor(theme))
+            Text(kind.rawValue)
+            Text("\(count)")
+                .monospacedDigit()
+                .foregroundStyle(theme.tertiary)
+            Spacer()
+        }
+        .font(.system(size: 10.5, weight: .semibold))
+        .foregroundStyle(theme.secondary)
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .background(theme.fill.opacity(0.45))
     }
 }
 
@@ -707,47 +818,6 @@ private struct SearchField: View {
                 .strokeBorder(theme.inputBorder, lineWidth: 0.5)
         }
         .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
-    }
-}
-
-private struct FilterMenu: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        let theme = ArkivTheme(scheme: colorScheme)
-
-        Menu {
-            ForEach(MediaKind.allCases) { kind in
-                Button {
-                    store.filter = kind
-                } label: {
-                    Label(kind == .all ? "All types" : kind.rawValue, systemImage: kind.menuSymbol)
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: store.filter.menuSymbol)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(theme.accent)
-                Text(store.filter == .all ? "All types" : store.filter.rawValue)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(theme.text)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(theme.tertiary)
-            }
-            .padding(.horizontal, 10)
-            .frame(height: 32)
-            .background(theme.input)
-            .overlay {
-                RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
-                    .strokeBorder(theme.inputBorder, lineWidth: 0.5)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
