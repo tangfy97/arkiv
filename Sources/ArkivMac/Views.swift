@@ -1,14 +1,16 @@
 import SwiftUI
 
 private enum ArkivStyle {
-    static let ink = Color(red: 0.11, green: 0.12, blue: 0.12)
-    static let secondary = Color(red: 0.42, green: 0.45, blue: 0.45)
-    static let blue = Color(red: 0.33, green: 0.44, blue: 0.50)
-    static let green = Color(red: 0.39, green: 0.55, blue: 0.43)
-    static let amber = Color(red: 0.71, green: 0.53, blue: 0.29)
-    static let glass = Color.white.opacity(0.24)
-    static let glassStrong = Color.white.opacity(0.40)
-    static let stroke = Color.white.opacity(0.46)
+    static let ink = Color(red: 0.12, green: 0.13, blue: 0.13)
+    static let secondary = Color(red: 0.36, green: 0.39, blue: 0.39)
+    static let muted = Color(red: 0.52, green: 0.55, blue: 0.55)
+    static let panel = Color(red: 0.95, green: 0.96, blue: 0.94)
+    static let card = Color(red: 0.99, green: 0.995, blue: 0.985)
+    static let blue = Color(red: 0.26, green: 0.39, blue: 0.46)
+    static let green = Color(red: 0.34, green: 0.50, blue: 0.37)
+    static let amber = Color(red: 0.64, green: 0.45, blue: 0.19)
+    static let stroke = Color.black.opacity(0.08)
+    static let hairline = Color.white.opacity(0.82)
 }
 
 struct RootView: View {
@@ -38,9 +40,9 @@ struct RootView: View {
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(.white.opacity(0.58), lineWidth: 1)
+                .strokeBorder(.white.opacity(0.78), lineWidth: 1)
         }
-        .shadow(color: .black.opacity(0.18), radius: 32, x: 0, y: 20)
+        .shadow(color: .black.opacity(0.18), radius: 30, x: 0, y: 18)
         .animation(.smooth(duration: 0.22), value: store.viewMode)
         .animation(.smooth(duration: 0.18), value: store.runState)
     }
@@ -49,21 +51,27 @@ struct RootView: View {
 struct LiquidSurface: View {
     var body: some View {
         ZStack {
-            VisualEffectView(material: .popover, blendingMode: .behindWindow)
+            VisualEffectView(material: .windowBackground, blendingMode: .behindWindow)
 
             LinearGradient(
                 colors: [
-                    Color.white.opacity(0.34),
-                    Color(red: 0.82, green: 0.88, blue: 0.88).opacity(0.15),
-                    Color.white.opacity(0.18)
+                    ArkivStyle.panel.opacity(0.97),
+                    Color(red: 0.90, green: 0.94, blue: 0.93).opacity(0.94),
+                    Color(red: 0.97, green: 0.97, blue: 0.94).opacity(0.96)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-            .blendMode(.plusLighter)
 
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(.white.opacity(0.08))
+                .fill(
+                    LinearGradient(
+                        colors: [.white.opacity(0.42), .clear],
+                        startPoint: .topLeading,
+                        endPoint: .center
+                    )
+                )
+                .blendMode(.softLight)
         }
     }
 }
@@ -99,8 +107,8 @@ struct AppHeader: View {
             Spacer()
 
             Text("ARKIV")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .tracking(4)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(3.4)
                 .foregroundStyle(ArkivStyle.secondary)
 
             Spacer()
@@ -114,7 +122,7 @@ struct AppHeader: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(ArkivStyle.secondary)
-            .background(.white.opacity(0.18), in: Circle())
+            .background(ArkivStyle.card.opacity(0.72), in: Circle())
             .help("Quit Arkiv")
         }
         .frame(height: 30)
@@ -138,23 +146,30 @@ struct SetupPanel: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Spacer(minLength: 4)
+            Spacer(minLength: 2)
 
             Image(systemName: "tray.and.arrow.down")
-                .font(.system(size: 28, weight: .light))
+                .font(.system(size: 24, weight: .regular))
                 .foregroundStyle(ArkivStyle.blue)
-                .frame(width: 62, height: 62)
-                .background(.white.opacity(0.20), in: Circle())
+                .frame(width: 56, height: 56)
+                .background(ArkivStyle.card.opacity(0.74), in: Circle())
+                .overlay {
+                    Circle().stroke(ArkivStyle.hairline, lineWidth: 1)
+                }
 
-            TextField("Batch name", text: $store.targetName)
+            TextField("", text: $store.targetName, prompt: Text("Batch name").foregroundStyle(ArkivStyle.muted))
                 .textFieldStyle(.plain)
                 .focused($focused)
-                .font(.system(size: 23, weight: .semibold, design: .rounded))
+                .font(.system(size: 20, weight: .medium))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(ArkivStyle.ink)
                 .padding(.horizontal, 14)
-                .frame(height: 54)
-                .background(GlassCard(cornerRadius: 17, opacity: 0.28))
+                .frame(height: 50)
+                .background(GlassCard(cornerRadius: 16, opacity: 0.34))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(focused ? ArkivStyle.blue.opacity(0.42) : Color.clear, lineWidth: 1.5)
+                }
 
             VStack(spacing: 8) {
                 FolderButton(title: "Watch", icon: "eye", path: store.watchFolderDisplayName) {
@@ -195,17 +210,19 @@ struct FolderButton: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
-                    .frame(width: 26, height: 26)
-                    .background(.white.opacity(0.22), in: Circle())
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(ArkivStyle.blue)
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.68), in: Circle())
 
                 Text(title)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(ArkivStyle.ink)
+                    .frame(width: 42, alignment: .leading)
 
                 Text(path)
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(ArkivStyle.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -213,11 +230,11 @@ struct FolderButton: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(ArkivStyle.muted)
             }
-            .padding(.horizontal, 11)
-            .frame(height: 42)
-            .background(GlassCard(cornerRadius: 15, opacity: 0.22))
+            .padding(.horizontal, 12)
+            .frame(height: 44)
+            .background(GlassCard(cornerRadius: 15, opacity: 0.26))
         }
         .buttonStyle(.plain)
     }
@@ -232,18 +249,28 @@ struct DurationPicker: View {
                 Button {
                     store.monitorDuration = duration
                 } label: {
-                    Text(duration.rawValue)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                    Text(label(for: duration))
+                        .font(.system(size: 12, weight: .semibold))
                         .frame(maxWidth: .infinity)
-                        .frame(height: 30)
+                        .frame(height: 32)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(store.monitorDuration == duration ? .white : ArkivStyle.secondary)
-                .background(store.monitorDuration == duration ? ArkivStyle.ink.opacity(0.86) : .white.opacity(0.16), in: Capsule())
+                .background(store.monitorDuration == duration ? ArkivStyle.ink.opacity(0.92) : Color.white.opacity(0.58), in: Capsule())
+                .help(duration.rawValue)
             }
         }
         .padding(4)
-        .background(.white.opacity(0.14), in: Capsule())
+        .background(Color.black.opacity(0.045), in: Capsule())
+    }
+
+    private func label(for duration: MonitorDuration) -> String {
+        switch duration {
+        case .fifteen: "15m"
+        case .thirty: "30m"
+        case .hour: "1h"
+        case .infinite: "∞"
+        }
     }
 }
 
@@ -258,20 +285,20 @@ struct RescueLine: View {
                 .labelsHidden()
 
             Text("Include last")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(ArkivStyle.secondary)
 
             Slider(value: $store.rescueMinutes, in: 5...45, step: 5)
                 .tint(ArkivStyle.blue)
 
             Text("\(Int(store.rescueMinutes))m")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(ArkivStyle.secondary)
                 .frame(width: 28, alignment: .trailing)
         }
-        .padding(.horizontal, 10)
-        .frame(height: 38)
-        .background(GlassCard(cornerRadius: 14, opacity: 0.18))
+        .padding(.horizontal, 12)
+        .frame(height: 42)
+        .background(GlassCard(cornerRadius: 15, opacity: 0.22))
     }
 }
 
@@ -296,13 +323,13 @@ struct MonitorTop: View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(store.sanitizedTargetName)
-                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .font(.system(size: 21, weight: .semibold))
                     .lineLimit(1)
                     .foregroundStyle(ArkivStyle.ink)
 
                 Text(subtitle)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ArkivStyle.secondary)
                     .lineLimit(1)
             }
 
@@ -359,14 +386,15 @@ struct CountPill: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("\(value)")
-                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(ArkivStyle.ink)
             Text(label)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(ArkivStyle.secondary)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 32)
-        .background(GlassCard(cornerRadius: 13, opacity: 0.18))
+        .background(GlassCard(cornerRadius: 13, opacity: 0.24))
     }
 }
 
@@ -386,15 +414,16 @@ struct ToolStrip: View {
             HStack(spacing: 8) {
                 Image(systemName: store.filter == .custom ? "number" : "magnifyingglass")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(ArkivStyle.secondary)
 
                 TextField(store.filter == .custom ? "jpg,png,mp4" : "Search filename", text: store.filter == .custom ? $store.customExtensions : $store.searchText)
                     .textFieldStyle(.plain)
                     .font(.system(size: 12, weight: .medium, design: store.filter == .custom ? .monospaced : .default))
+                    .foregroundStyle(ArkivStyle.ink)
             }
             .padding(.horizontal, 10)
             .frame(height: 34)
-            .background(GlassCard(cornerRadius: 13, opacity: 0.18))
+            .background(GlassCard(cornerRadius: 13, opacity: 0.24))
         }
     }
 }
@@ -415,7 +444,7 @@ struct FilterButton: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(store.filter == kind ? .white : ArkivStyle.secondary)
-        .background(store.filter == kind ? ArkivStyle.ink.opacity(0.86) : .white.opacity(0.14), in: Capsule())
+        .background(store.filter == kind ? ArkivStyle.ink.opacity(0.92) : Color.white.opacity(0.58), in: Capsule())
         .help(kind.rawValue)
     }
 }
@@ -453,10 +482,10 @@ struct EmptyFilesState: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(ArkivStyle.secondary)
         .frame(maxWidth: .infinity)
         .frame(height: 160)
-        .background(GlassCard(cornerRadius: 16, opacity: 0.14))
+        .background(GlassCard(cornerRadius: 16, opacity: 0.24))
     }
 }
 
@@ -492,11 +521,11 @@ struct FileRow: View {
 
                 Image(systemName: file.isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(file.isSelected ? ArkivStyle.blue : .secondary)
+                    .foregroundStyle(file.isSelected ? ArkivStyle.blue : ArkivStyle.muted)
             }
             .padding(.horizontal, 9)
             .frame(height: 44)
-            .background(GlassCard(cornerRadius: 14, opacity: file.isSelected ? 0.28 : 0.14))
+            .background(GlassCard(cornerRadius: 14, opacity: file.isSelected ? 0.32 : 0.22))
         }
         .buttonStyle(.plain)
     }
@@ -570,22 +599,22 @@ struct DonePanel: View {
                 .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(ArkivStyle.green)
                 .frame(width: 70, height: 70)
-                .background(GlassCard(cornerRadius: 35, opacity: 0.22))
+                .background(GlassCard(cornerRadius: 35, opacity: 0.28))
 
             VStack(spacing: 7) {
                 Text("Archived")
-                    .font(.system(size: 25, weight: .semibold, design: .rounded))
+                    .font(.system(size: 24, weight: .semibold))
 
                 if let batch = store.lastArchive {
                     Text("\(batch.records.count) files")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ArkivStyle.secondary)
 
                     Text(batch.destinationFolder)
                         .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .lineLimit(1)
                         .truncationMode(.middle)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(ArkivStyle.secondary)
                         .padding(.horizontal, 10)
                         .frame(height: 28)
                         .background(.white.opacity(0.16), in: Capsule())
@@ -620,14 +649,16 @@ struct GlassCard: View {
     let opacity: Double
 
     var body: some View {
+        let fillOpacity = min(0.96, 0.58 + opacity)
+
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(.white.opacity(opacity))
+            .fill(ArkivStyle.card.opacity(fillOpacity))
             .overlay {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(ArkivStyle.stroke, lineWidth: 0.8)
+                    .strokeBorder(ArkivStyle.stroke, lineWidth: 0.8)
             }
-            .shadow(color: .white.opacity(0.16), radius: 7, x: -2, y: -2)
-            .shadow(color: .black.opacity(0.035), radius: 9, x: 0, y: 5)
+            .shadow(color: .white.opacity(0.46), radius: 8, x: -2, y: -2)
+            .shadow(color: .black.opacity(0.045), radius: 10, x: 0, y: 5)
     }
 }
 
@@ -636,13 +667,19 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 14, weight: .bold, design: .rounded))
-            .foregroundStyle(.white)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(isEnabled ? .white : ArkivStyle.secondary)
             .frame(height: 46)
             .background(
-                ArkivStyle.ink.opacity(isEnabled ? (configuration.isPressed ? 0.82 : 0.92) : 0.28),
+                isEnabled
+                    ? ArkivStyle.ink.opacity(configuration.isPressed ? 0.82 : 0.94)
+                    : ArkivStyle.card.opacity(0.78),
                 in: RoundedRectangle(cornerRadius: 16, style: .continuous)
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(isEnabled ? Color.clear : ArkivStyle.stroke, lineWidth: 0.8)
+            }
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
     }
 }
@@ -652,7 +689,7 @@ struct IconButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(ArkivStyle.secondary)
-            .background(GlassCard(cornerRadius: 13, opacity: configuration.isPressed ? 0.34 : 0.18))
+            .background(GlassCard(cornerRadius: 13, opacity: configuration.isPressed ? 0.34 : 0.22))
             .scaleEffect(configuration.isPressed ? 0.96 : 1)
     }
 }
@@ -662,7 +699,7 @@ struct GlassTextButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 12, weight: .bold, design: .rounded))
             .foregroundStyle(ArkivStyle.secondary)
-            .background(GlassCard(cornerRadius: 14, opacity: configuration.isPressed ? 0.32 : 0.18))
+            .background(GlassCard(cornerRadius: 14, opacity: configuration.isPressed ? 0.32 : 0.22))
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
     }
 }
@@ -673,7 +710,7 @@ struct GlassWideButtonStyle: ButtonStyle {
             .font(.system(size: 13, weight: .bold, design: .rounded))
             .foregroundStyle(ArkivStyle.ink)
             .frame(height: 46)
-            .background(GlassCard(cornerRadius: 16, opacity: configuration.isPressed ? 0.34 : 0.20))
+            .background(GlassCard(cornerRadius: 16, opacity: configuration.isPressed ? 0.34 : 0.24))
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
     }
 }
