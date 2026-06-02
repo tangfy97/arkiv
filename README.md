@@ -12,7 +12,7 @@ This is the first native macOS rewrite of Arkiv. It keeps the quiet floating-pan
 - Supports filters: All, Images, Videos, Other, and Custom extensions.
 - Supports filename search and multi-select.
 - Waits for files to become stable before marking them ready.
-- Archives selected ready files into `{Archive Root}/{Target}/{Date Session}/Images`, `Videos`, or `Other`.
+- Archives selected ready files into `{Archive Root}/{Target}/Images`, `Videos`, or `Other`.
 - Writes a JSON ledger under `~/Pictures/Arkiv/.arkiv-ledger/`.
 - Supports undo for the last archive batch.
 

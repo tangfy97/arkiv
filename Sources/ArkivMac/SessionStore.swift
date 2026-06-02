@@ -408,7 +408,6 @@ final class SessionStore: ObservableObject {
     private func createArchiveBatch(for files: [DetectedFile]) throws -> ArchiveBatch {
         let destinationFolder = archiveRootURL
             .appendingPathComponent(sanitizedTargetName)
-            .appendingPathComponent(Self.sessionFolderFormatter.string(from: Date()))
 
         try FileManager.default.createDirectory(at: destinationFolder, withIntermediateDirectories: true)
 
@@ -550,12 +549,6 @@ final class SessionStore: ObservableObject {
             return fileURL.path
         })
     }
-
-    private static let sessionFolderFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH.mm Session"
-        return formatter
-    }()
 
     private static let fileNameDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
