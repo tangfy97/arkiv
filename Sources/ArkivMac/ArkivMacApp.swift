@@ -36,13 +36,8 @@ struct WindowConfigurator: NSViewRepresentable {
             window.isMovableByWindowBackground = true
             window.isOpaque = false
             window.backgroundColor = .clear
-            window.titlebarAppearsTransparent = true
-            window.styleMask.insert(.fullSizeContentView)
-            window.styleMask.remove(.resizable)
+            window.styleMask = [.borderless, .fullSizeContentView]
             window.titleVisibility = .hidden
-            window.standardWindowButton(.closeButton)?.isHidden = true
-            window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-            window.standardWindowButton(.zoomButton)?.isHidden = true
             window.setContentSize(NSSize(width: 380, height: 524))
             window.minSize = NSSize(width: 380, height: 524)
             window.maxSize = NSSize(width: 380, height: 524)
