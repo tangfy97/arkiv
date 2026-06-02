@@ -12,7 +12,7 @@ final class SessionStore: ObservableObject {
     @Published var searchText = ""
     @Published var customExtensions = "jpg,jpeg,png,gif,mp4,mov"
     @Published var includeRescueMode = true
-    @Published var rescueMinutes = 15.0
+    @Published var recentWindow: RecentWindow = .hour
     @Published var monitorDuration: MonitorDuration = .thirty
     @Published var remainingSeconds: TimeInterval?
     @Published var statusMessage = "Ready"
@@ -56,8 +56,16 @@ final class SessionStore: ObservableObject {
         detectedFiles.filter { $0.isSelected && $0.readiness == .ready }
     }
 
+    var filteredReadyFiles: [DetectedFile] {
+        filteredFiles.filter { $0.readiness == .ready }
+    }
+
+    var allFilteredReadySelected: Bool {
+        !filteredReadyFiles.isEmpty && filteredReadyFiles.allSatisfy(\.isSelected)
+    }
+
     var detectedCount: Int { detectedFiles.count }
-    var selectedCount: Int { detectedFiles.filter(\.isSelected).count }
+    var selectedCount: Int { selectedReadyFiles.count }
     var readyCount: Int { detectedFiles.filter { $0.readiness == .ready }.count }
     var downloadingCount: Int { detectedFiles.filter { $0.readiness == .downloading }.count }
     var selectedReadySize: Int64 { selectedReadyFiles.reduce(0) { $0 + $1.sizeBytes } }
@@ -144,17 +152,21 @@ final class SessionStore: ObservableObject {
     }
 
     func selectAllFiltered() {
-        let ids = Set(filteredFiles.map(\.id))
+        let ids = Set(filteredReadyFiles.map(\.id))
         for index in detectedFiles.indices where ids.contains(detectedFiles[index].id) {
             detectedFiles[index].isSelected = true
         }
     }
 
     func clearFilteredSelection() {
-        let ids = Set(filteredFiles.map(\.id))
+        let ids = Set(filteredReadyFiles.map(\.id))
         for index in detectedFiles.indices where ids.contains(detectedFiles[index].id) {
             detectedFiles[index].isSelected = false
         }
+    }
+
+    func toggleAllFilteredReady() {
+        allFilteredReadySelected ? clearFilteredSelection() : selectAllFiltered()
     }
 
     func archiveSelected() {
@@ -216,11 +228,11 @@ final class SessionStore: ObservableObject {
         guard runState == .running || viewMode == .ready else { return }
         scanGeneration += 1
         let generation = scanGeneration
-        scanTask = Task { [watchFolderURL, includeRescueMode, rescueMinutes, sessionStartedAt, baselinePaths] in
+        scanTask = Task { [watchFolderURL, includeRescueMode, recentWindow, sessionStartedAt, baselinePaths] in
             let scanned = await Self.scanDirectory(
                 watchFolderURL,
                 includeRescueMode: includeRescueMode,
-                rescueMinutes: rescueMinutes,
+                recentWindow: recentWindow,
                 sessionStartedAt: sessionStartedAt,
                 baselinePaths: baselinePaths
             )
@@ -245,7 +257,7 @@ final class SessionStore: ObservableObject {
     private static func scanDirectory(
         _ url: URL,
         includeRescueMode: Bool,
-        rescueMinutes: Double,
+        recentWindow: RecentWindow,
         sessionStartedAt: Date,
         baselinePaths: Set<String>
     ) async -> Result<[DetectedFile], ScanError> {
@@ -269,9 +281,7 @@ final class SessionStore: ObservableObject {
             return .failure(.cannotReadFolder(url, error))
         }
 
-        let earliest = includeRescueMode
-            ? sessionStartedAt.addingTimeInterval(-rescueMinutes * 60)
-            : sessionStartedAt
+        let earliest = includeRescueMode ? recentWindow.earliestDate(relativeTo: sessionStartedAt) : sessionStartedAt
 
         let files: [DetectedFile] = urls.compactMap { fileURL in
             guard let values = try? fileURL.resourceValues(forKeys: keys),

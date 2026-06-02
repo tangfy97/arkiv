@@ -14,12 +14,21 @@ enum SessionRunState {
 }
 
 enum MonitorDuration: String, CaseIterable, Identifiable {
-    case fifteen = "15m"
-    case thirty = "30m"
-    case hour = "1h"
-    case infinite = "Until stopped"
+    case fifteen = "15 min"
+    case thirty = "30 min"
+    case hour = "1 hour"
+    case infinite = "Until I stop"
 
     var id: String { rawValue }
+
+    var fullLabel: String {
+        switch self {
+        case .fifteen: "15 minutes"
+        case .thirty: "30 minutes"
+        case .hour: "1 hour"
+        case .infinite: "Until I stop"
+        }
+    }
 
     var seconds: TimeInterval? {
         switch self {
@@ -27,6 +36,25 @@ enum MonitorDuration: String, CaseIterable, Identifiable {
         case .thirty: 30 * 60
         case .hour: 60 * 60
         case .infinite: nil
+        }
+    }
+}
+
+enum RecentWindow: String, CaseIterable, Identifiable {
+    case thirty = "30 min"
+    case hour = "1 hour"
+    case today = "Today"
+
+    var id: String { rawValue }
+
+    func earliestDate(relativeTo date: Date) -> Date {
+        switch self {
+        case .thirty:
+            date.addingTimeInterval(-30 * 60)
+        case .hour:
+            date.addingTimeInterval(-60 * 60)
+        case .today:
+            Calendar.current.startOfDay(for: date)
         }
     }
 }
@@ -127,6 +155,18 @@ struct ArchiveBatch: Codable, Identifiable {
     let destinationFolder: String
     let createdAt: Date
     let records: [ArchiveRecord]
+
+    var imageCount: Int {
+        records.filter { URL(fileURLWithPath: $0.archivedPath).deletingLastPathComponent().lastPathComponent == "Images" }.count
+    }
+
+    var videoCount: Int {
+        records.filter { URL(fileURLWithPath: $0.archivedPath).deletingLastPathComponent().lastPathComponent == "Videos" }.count
+    }
+
+    var otherCount: Int {
+        records.count - imageCount - videoCount
+    }
 }
 
 extension Int64 {

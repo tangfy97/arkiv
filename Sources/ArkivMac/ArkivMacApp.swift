@@ -10,7 +10,7 @@ struct ArkivMacApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(store)
-                .frame(width: 386, height: 520)
+                .frame(width: 380, height: 524)
                 .background(WindowConfigurator())
         }
         .windowStyle(.hiddenTitleBar)
@@ -40,9 +40,9 @@ struct WindowConfigurator: NSViewRepresentable {
             window.standardWindowButton(.closeButton)?.isHidden = true
             window.standardWindowButton(.miniaturizeButton)?.isHidden = true
             window.standardWindowButton(.zoomButton)?.isHidden = true
-            window.setContentSize(NSSize(width: 386, height: 520))
-            window.minSize = NSSize(width: 386, height: 520)
-            window.maxSize = NSSize(width: 386, height: 520)
+            window.setContentSize(NSSize(width: 380, height: 524))
+            window.minSize = NSSize(width: 380, height: 524)
+            window.maxSize = NSSize(width: 380, height: 524)
         }
         return view
     }

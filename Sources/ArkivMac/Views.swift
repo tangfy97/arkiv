@@ -1,732 +1,980 @@
 import SwiftUI
 
-private enum ArkivStyle {
-    static let ink = Color(red: 0.12, green: 0.13, blue: 0.13)
-    static let secondary = Color(red: 0.36, green: 0.39, blue: 0.39)
-    static let muted = Color(red: 0.52, green: 0.55, blue: 0.55)
-    static let panel = Color(red: 0.95, green: 0.96, blue: 0.94)
-    static let card = Color(red: 0.99, green: 0.995, blue: 0.985)
-    static let blue = Color(red: 0.26, green: 0.39, blue: 0.46)
-    static let green = Color(red: 0.34, green: 0.50, blue: 0.37)
-    static let amber = Color(red: 0.64, green: 0.45, blue: 0.19)
-    static let stroke = Color.black.opacity(0.08)
-    static let hairline = Color.white.opacity(0.82)
+private struct ArkivTheme {
+    let scheme: ColorScheme
+
+    var isDark: Bool { scheme == .dark }
+    var text: Color { isDark ? .white.opacity(0.94) : .black.opacity(0.86) }
+    var secondary: Color { isDark ? .white.opacity(0.62) : Color(red: 0.235, green: 0.235, blue: 0.263).opacity(0.58) }
+    var tertiary: Color { isDark ? .white.opacity(0.34) : Color(red: 0.235, green: 0.235, blue: 0.263).opacity(0.34) }
+    var quaternary: Color { isDark ? .white.opacity(0.20) : Color(red: 0.235, green: 0.235, blue: 0.263).opacity(0.18) }
+    var separator: Color { isDark ? .white.opacity(0.10) : Color(red: 0.235, green: 0.235, blue: 0.263).opacity(0.11) }
+    var separatorStrong: Color { isDark ? .white.opacity(0.16) : Color(red: 0.235, green: 0.235, blue: 0.263).opacity(0.18) }
+    var fill: Color { isDark ? Color(red: 0.47, green: 0.48, blue: 0.51).opacity(0.26) : Color(red: 0.46, green: 0.46, blue: 0.50).opacity(0.12) }
+    var fillHover: Color { isDark ? Color(red: 0.51, green: 0.52, blue: 0.55).opacity(0.38) : Color(red: 0.46, green: 0.46, blue: 0.50).opacity(0.20) }
+    var input: Color { isDark ? .white.opacity(0.06) : .white.opacity(0.70) }
+    var inputBorder: Color { isDark ? .white.opacity(0.10) : .black.opacity(0.10) }
+    var panelSurface: Color { isDark ? Color(red: 0.15, green: 0.15, blue: 0.17).opacity(0.66) : Color(red: 0.97, green: 0.97, blue: 0.98).opacity(0.74) }
+    var panelBorder: Color { isDark ? .white.opacity(0.12) : .black.opacity(0.08) }
+    var panelTop: Color { isDark ? .white.opacity(0.16) : .white.opacity(0.85) }
+    var toolbarBackground: Color { isDark ? Color(red: 0.19, green: 0.19, blue: 0.22).opacity(0.55) : .white.opacity(0.42) }
+    var accent: Color { isDark ? Color(red: 0.24, green: 0.80, blue: 0.53) : Color(red: 0.12, green: 0.56, blue: 0.35) }
+    var accentSoft: Color { accent.opacity(isDark ? 0.20 : 0.13) }
+    var danger: Color { isDark ? Color(red: 1.0, green: 0.45, blue: 0.42) : Color(red: 0.78, green: 0.16, blue: 0.13) }
+    var image: Color { isDark ? Color(red: 0.36, green: 0.79, blue: 0.75) : Color(red: 0.17, green: 0.60, blue: 0.58) }
+    var video: Color { isDark ? Color(red: 0.65, green: 0.61, blue: 0.95) : Color(red: 0.48, green: 0.42, blue: 0.86) }
+    var other: Color { isDark ? Color(red: 0.72, green: 0.67, blue: 0.63) : Color(red: 0.55, green: 0.51, blue: 0.46) }
+    var radius: CGFloat { 18 }
+    var innerRadius: CGFloat { 10 }
 }
 
 struct RootView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
 
     var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
         ZStack {
-            LiquidSurface()
+            RoundedRectangle(cornerRadius: theme.radius, style: .continuous)
+                .fill(.ultraThinMaterial)
 
-            VStack(spacing: 14) {
-                AppHeader()
+            RoundedRectangle(cornerRadius: theme.radius, style: .continuous)
+                .fill(theme.panelSurface)
 
-                Group {
-                    switch store.viewMode {
-                    case .ready:
-                        SetupPanel()
-                    case .watching:
-                        MonitorPanel()
-                    case .archived:
-                        DonePanel()
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding(16)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .strokeBorder(.white.opacity(0.78), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.18), radius: 30, x: 0, y: 18)
-        .animation(.smooth(duration: 0.22), value: store.viewMode)
-        .animation(.smooth(duration: 0.18), value: store.runState)
-    }
-}
-
-struct LiquidSurface: View {
-    var body: some View {
-        ZStack {
-            VisualEffectView(material: .windowBackground, blendingMode: .behindWindow)
-
-            LinearGradient(
-                colors: [
-                    ArkivStyle.panel.opacity(0.97),
-                    Color(red: 0.90, green: 0.94, blue: 0.93).opacity(0.94),
-                    Color(red: 0.97, green: 0.97, blue: 0.94).opacity(0.96)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: theme.radius, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [.white.opacity(0.42), .clear],
-                        startPoint: .topLeading,
+                        colors: [theme.panelTop, .clear],
+                        startPoint: .top,
                         endPoint: .center
                     )
                 )
                 .blendMode(.softLight)
+
+            VStack(spacing: 0) {
+                switch store.viewMode {
+                case .ready:
+                    SetupPanel()
+                case .watching:
+                    MonitoringPanel()
+                case .archived:
+                    ArchivedPanel()
+                }
+            }
         }
+        .clipShape(RoundedRectangle(cornerRadius: theme.radius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.radius, style: .continuous)
+                .strokeBorder(theme.panelBorder, lineWidth: 0.5)
+        }
+        .shadow(
+            color: theme.isDark ? .black.opacity(0.55) : Color(red: 0.08, green: 0.11, blue: 0.15).opacity(0.22),
+            radius: theme.isDark ? 56 : 44,
+            x: 0,
+            y: theme.isDark ? 18 : 16
+        )
+        .animation(.smooth(duration: 0.20), value: store.viewMode)
     }
 }
 
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
-}
-
-struct AppHeader: View {
+private struct Toolbar: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
 
-    var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
-                .shadow(color: statusColor.opacity(0.5), radius: 5)
-
-            Spacer()
-
-            Text("ARKIV")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(3.4)
-                .foregroundStyle(ArkivStyle.secondary)
-
-            Spacer()
-
-            Button {
-                NSApp.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28)
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(ArkivStyle.secondary)
-            .background(ArkivStyle.card.opacity(0.72), in: Circle())
-            .help("Quit Arkiv")
-        }
-        .frame(height: 30)
-    }
-
-    private var statusColor: Color {
-        switch store.runState {
-        case .idle:
-            store.viewMode == .archived ? ArkivStyle.green : ArkivStyle.secondary.opacity(0.75)
-        case .running:
-            ArkivStyle.blue
-        case .paused:
-            ArkivStyle.amber
-        }
-    }
-}
-
-struct SetupPanel: View {
-    @EnvironmentObject private var store: SessionStore
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Spacer(minLength: 2)
-
-            Image(systemName: "tray.and.arrow.down")
-                .font(.system(size: 24, weight: .regular))
-                .foregroundStyle(ArkivStyle.blue)
-                .frame(width: 56, height: 56)
-                .background(ArkivStyle.card.opacity(0.74), in: Circle())
-                .overlay {
-                    Circle().stroke(ArkivStyle.hairline, lineWidth: 1)
-                }
-
-            TextField("", text: $store.targetName, prompt: Text("Batch name").foregroundStyle(ArkivStyle.muted))
-                .textFieldStyle(.plain)
-                .focused($focused)
-                .font(.system(size: 20, weight: .medium))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(ArkivStyle.ink)
-                .padding(.horizontal, 14)
-                .frame(height: 50)
-                .background(GlassCard(cornerRadius: 16, opacity: 0.34))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(focused ? ArkivStyle.blue.opacity(0.42) : Color.clear, lineWidth: 1.5)
-                }
-
-            VStack(spacing: 8) {
-                FolderButton(title: "Watch", icon: "eye", path: store.watchFolderDisplayName) {
-                    store.chooseWatchFolder()
-                }
-
-                FolderButton(title: "Save", icon: "archivebox", path: store.archiveRootDisplayName) {
-                    store.chooseArchiveRoot()
-                }
-            }
-
-            DurationPicker()
-
-            RescueLine()
-
-            Spacer(minLength: 4)
-
-            Button {
-                store.startSession()
-            } label: {
-                Label("Start", systemImage: "play.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(store.targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
-        .onAppear { focused = true }
-    }
-}
-
-struct FolderButton: View {
     let title: String
-    let icon: String
-    let path: String
-    let action: () -> Void
+    var showsStatus = false
+    var trailing: AnyView
+
+    init<Content: View>(title: String, showsStatus: Bool = false, @ViewBuilder trailing: () -> Content) {
+        self.title = title
+        self.showsStatus = showsStatus
+        self.trailing = AnyView(trailing())
+    }
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(ArkivStyle.blue)
-                    .frame(width: 28, height: 28)
-                    .background(Color.white.opacity(0.68), in: Circle())
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        ZStack(alignment: .top) {
+            Rectangle()
+                .fill(theme.toolbarBackground)
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(theme.separator)
+                        .frame(height: 0.5)
+                }
+
+            Capsule()
+                .fill(theme.quaternary)
+                .frame(width: 34, height: 5)
+                .padding(.top, 8)
+
+            HStack(spacing: 9) {
+                if showsStatus {
+                    StatusDot(paused: store.runState == .paused)
+                }
 
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(ArkivStyle.ink)
-                    .frame(width: 42, alignment: .leading)
-
-                Text(path)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(ArkivStyle.secondary)
+                    .font(.system(size: 14.5, weight: .semibold))
+                    .tracking(-0.25)
+                    .foregroundStyle(theme.text)
                     .lineLimit(1)
-                    .truncationMode(.middle)
+                    .truncationMode(.tail)
 
-                Spacer(minLength: 2)
+                Spacer(minLength: 8)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(ArkivStyle.muted)
+                trailing
             }
+            .padding(.top, 20)
             .padding(.horizontal, 12)
-            .frame(height: 44)
-            .background(GlassCard(cornerRadius: 15, opacity: 0.26))
+            .padding(.bottom, 11)
         }
-        .buttonStyle(.plain)
+        .frame(height: 58)
+        .contentShape(Rectangle())
     }
 }
 
-struct DurationPicker: View {
-    @EnvironmentObject private var store: SessionStore
+private struct StatusDot: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var pulse = false
+    let paused: Bool
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(MonitorDuration.allCases) { duration in
-                Button {
-                    store.monitorDuration = duration
-                } label: {
-                    Text(label(for: duration))
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 32)
+        let theme = ArkivTheme(scheme: colorScheme)
+        let color = paused ? Color.orange : theme.accent
+
+        Circle()
+            .fill(color)
+            .frame(width: 8, height: 8)
+            .scaleEffect(pulse && !paused ? 1.35 : 1)
+            .opacity(pulse && !paused ? 0.62 : 1)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                    pulse = true
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(store.monitorDuration == duration ? .white : ArkivStyle.secondary)
-                .background(store.monitorDuration == duration ? ArkivStyle.ink.opacity(0.92) : Color.white.opacity(0.58), in: Capsule())
-                .help(duration.rawValue)
             }
-        }
-        .padding(4)
-        .background(Color.black.opacity(0.045), in: Capsule())
-    }
-
-    private func label(for duration: MonitorDuration) -> String {
-        switch duration {
-        case .fifteen: "15m"
-        case .thirty: "30m"
-        case .hour: "1h"
-        case .infinite: "∞"
-        }
     }
 }
 
-struct RescueLine: View {
+private struct SetupPanel: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
+    @State private var durationOpen = false
 
     var body: some View {
-        HStack(spacing: 9) {
-            Toggle("", isOn: $store.includeRescueMode)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .labelsHidden()
+        let theme = ArkivTheme(scheme: colorScheme)
 
-            Text("Include last")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(ArkivStyle.secondary)
-
-            Slider(value: $store.rescueMinutes, in: 5...45, step: 5)
-                .tint(ArkivStyle.blue)
-
-            Text("\(Int(store.rescueMinutes))m")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(ArkivStyle.secondary)
-                .frame(width: 28, alignment: .trailing)
-        }
-        .padding(.horizontal, 12)
-        .frame(height: 42)
-        .background(GlassCard(cornerRadius: 15, opacity: 0.22))
-    }
-}
-
-struct MonitorPanel: View {
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        VStack(spacing: 10) {
-            MonitorTop()
-            CountBar()
-            ToolStrip()
-            FileList()
-            ArchiveBar()
-        }
-    }
-}
-
-struct MonitorTop: View {
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.sanitizedTargetName)
-                    .font(.system(size: 21, weight: .semibold))
-                    .lineLimit(1)
-                    .foregroundStyle(ArkivStyle.ink)
-
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(ArkivStyle.secondary)
-                    .lineLimit(1)
+        VStack(spacing: 0) {
+            Toolbar(title: "Set up") {
+                IconCircleButton(systemName: "xmark", title: "Quit Arkiv") {
+                    NSApp.terminate(nil)
+                }
             }
 
-            Spacer()
+            ScrollView {
+                VStack(spacing: 14) {
+                    GroupBox(label: "Batch") {
+                        GroupRow(label: "Name") {
+                            TextField("", text: $store.targetName, prompt: Text("Required").foregroundStyle(theme.tertiary))
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(theme.text)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 170)
+                        }
+                    }
 
-            Button {
-                store.togglePause()
-            } label: {
-                Image(systemName: store.runState == .paused ? "play.fill" : "pause.fill")
-                    .frame(width: 32, height: 32)
+                    GroupBox(label: "Folders") {
+                        GroupRow(
+                            label: "Watch",
+                            value: store.watchFolderURL.lastPathComponent,
+                            leading: Image(systemName: "folder").foregroundStyle(theme.accent),
+                            action: { store.chooseWatchFolder() }
+                        )
+
+                        DividerLine()
+
+                        GroupRow(
+                            label: "Archive to",
+                            value: store.archiveRootURL.lastPathComponent,
+                            leading: Image(systemName: "arrow.down.to.line").foregroundStyle(theme.accent),
+                            action: { store.chooseArchiveRoot() }
+                        )
+                    }
+
+                    GroupBox(label: "Monitoring") {
+                        GroupRow(label: "Duration", value: store.monitorDuration.fullLabel, action: {
+                            durationOpen.toggle()
+                        })
+
+                        if durationOpen {
+                            VStack(spacing: 8) {
+                                DividerLine()
+                                DurationSegmented()
+                                    .padding(.horizontal, 12)
+                                    .padding(.bottom, 12)
+                            }
+                        }
+
+                        DividerLine()
+
+                        GroupRow(label: "Include recent files", subtitle: "Catch files added just before you started.") {
+                            Toggle("", isOn: $store.includeRescueMode)
+                                .toggleStyle(.switch)
+                                .labelsHidden()
+                        }
+
+                        if store.includeRescueMode {
+                            VStack(alignment: .leading, spacing: 7) {
+                                DividerLine()
+                                Text("From the last")
+                                    .font(.system(size: 11, weight: .regular))
+                                    .foregroundStyle(theme.secondary)
+                                    .padding(.horizontal, 12)
+                                RecentSegmented()
+                                    .padding(.horizontal, 12)
+                                    .padding(.bottom, 12)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
             }
-            .buttonStyle(IconButtonStyle())
-            .help(store.runState == .paused ? "Resume" : "Pause")
+            .scrollIndicators(.hidden)
 
-            Button {
-                store.cancelSession()
-            } label: {
-                Image(systemName: "xmark")
-                    .frame(width: 32, height: 32)
+            BottomActionArea {
+                PillButton(systemName: "play.fill", title: "Start monitoring", disabled: store.targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                    store.startSession()
+                }
             }
-            .buttonStyle(IconButtonStyle())
-            .help("Cancel")
         }
-    }
-
-    private var subtitle: String {
-        if store.runState == .paused {
-            return "Paused"
-        }
-        if let remaining = store.remainingSeconds {
-            let minutes = max(0, Int(ceil(remaining / 60)))
-            return "\(minutes)m left · \(store.watchFolderURL.lastPathComponent)"
-        }
-        return "Watching · \(store.watchFolderURL.lastPathComponent)"
     }
 }
 
-struct CountBar: View {
+private struct DurationSegmented: View {
     @EnvironmentObject private var store: SessionStore
 
     var body: some View {
-        HStack(spacing: 6) {
-            CountPill(value: store.detectedCount, label: "Seen")
-            CountPill(value: store.readyCount, label: "Ready")
-            CountPill(value: store.selectedCount, label: "Pick")
-        }
-    }
-}
-
-struct CountPill: View {
-    let value: Int
-    let label: String
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Text("\(value)")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(ArkivStyle.ink)
-            Text(label)
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(ArkivStyle.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 32)
-        .background(GlassCard(cornerRadius: 13, opacity: 0.24))
-    }
-}
-
-struct ToolStrip: View {
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 5) {
-                FilterButton(kind: .all, symbol: "square.grid.2x2")
-                FilterButton(kind: .image, symbol: "photo")
-                FilterButton(kind: .video, symbol: "film")
-                FilterButton(kind: .other, symbol: "doc")
-                FilterButton(kind: .custom, symbol: "slider.horizontal.3")
+        Picker("Duration", selection: $store.monitorDuration) {
+            ForEach(MonitorDuration.allCases) { duration in
+                Text(duration.rawValue).tag(duration)
             }
+        }
+        .pickerStyle(.segmented)
+        .controlSize(.small)
+    }
+}
 
-            HStack(spacing: 8) {
-                Image(systemName: store.filter == .custom ? "number" : "magnifyingglass")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(ArkivStyle.secondary)
+private struct RecentSegmented: View {
+    @EnvironmentObject private var store: SessionStore
 
-                TextField(store.filter == .custom ? "jpg,png,mp4" : "Search filename", text: store.filter == .custom ? $store.customExtensions : $store.searchText)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12, weight: .medium, design: store.filter == .custom ? .monospaced : .default))
-                    .foregroundStyle(ArkivStyle.ink)
+    var body: some View {
+        Picker("Recent files", selection: $store.recentWindow) {
+            ForEach(RecentWindow.allCases) { window in
+                Text(window.rawValue).tag(window)
             }
-            .padding(.horizontal, 10)
-            .frame(height: 34)
-            .background(GlassCard(cornerRadius: 13, opacity: 0.24))
         }
+        .pickerStyle(.segmented)
+        .controlSize(.small)
     }
 }
 
-struct FilterButton: View {
-    @EnvironmentObject private var store: SessionStore
-    let kind: MediaKind
-    let symbol: String
-
-    var body: some View {
-        Button {
-            store.filter = kind
-        } label: {
-            Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .frame(height: 30)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(store.filter == kind ? .white : ArkivStyle.secondary)
-        .background(store.filter == kind ? ArkivStyle.ink.opacity(0.92) : Color.white.opacity(0.58), in: Capsule())
-        .help(kind.rawValue)
-    }
-}
-
-struct FileList: View {
+private struct MonitoringPanel: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 6) {
-                if store.filteredFiles.isEmpty {
-                    EmptyFilesState()
-                } else {
-                    ForEach(store.filteredFiles) { file in
-                        FileRow(file: file)
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        VStack(spacing: 0) {
+            Toolbar(title: store.sanitizedTargetName, showsStatus: true) {
+                HStack(spacing: 6) {
+                    IconCircleButton(systemName: store.runState == .paused ? "play.fill" : "pause.fill", title: store.runState == .paused ? "Resume" : "Pause") {
+                        store.togglePause()
+                    }
+                    IconCircleButton(systemName: "xmark.circle", title: "Cancel", role: .destructive) {
+                        store.cancelSession()
                     }
                 }
             }
-            .padding(.vertical, 1)
+
+            VStack(spacing: 10) {
+                StatPillBar()
+
+                HStack(spacing: 8) {
+                    SearchField()
+                    FilterMenu()
+                }
+
+                if store.filter == .custom {
+                    SearchField(custom: true)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            HStack {
+                SectionLabel(store.searchText.isEmpty && store.filter == .all ? "Detected files" : "\(store.filteredFiles.count) matching")
+                Spacer()
+                Button(store.allFilteredReadySelected ? "Deselect all" : "Select all") {
+                    store.toggleAllFilteredReady()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(theme.accent)
+            }
+            .padding(.horizontal, 18)
+            .padding(.bottom, 6)
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    if store.filteredFiles.isEmpty {
+                        Text(store.statusMessage == "Ready" ? "No files match." : store.statusMessage)
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(theme.tertiary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 26)
+                    } else {
+                        ForEach(Array(store.filteredFiles.enumerated()), id: \.element.id) { index, file in
+                            if index > 0 {
+                                DividerLine(inset: 47)
+                            }
+                            FileRow(file: file)
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                        .fill(theme.input)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                        .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+            }
+            .scrollIndicators(.hidden)
+            .padding(.horizontal, 14)
+
+            BottomActionArea {
+                PillButton(
+                    systemName: "archivebox.fill",
+                    title: store.selectedReadyFiles.isEmpty ? "Select files to archive" : "Archive selected",
+                    count: store.selectedReadyFiles.isEmpty ? nil : store.selectedReadyFiles.count,
+                    disabled: store.selectedReadyFiles.isEmpty
+                ) {
+                    store.archiveSelected()
+                }
+            }
         }
-        .frame(height: 172)
-        .scrollIndicators(.never)
     }
 }
 
-struct EmptyFilesState: View {
+private struct ArchivedPanel: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
 
     var body: some View {
-        VStack(spacing: 7) {
-            Image(systemName: "folder.badge.questionmark")
-                .font(.system(size: 22, weight: .light))
-            Text(store.statusMessage)
-                .font(.system(size: 12, weight: .semibold))
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
+        let theme = ArkivTheme(scheme: colorScheme)
+        let batch = store.lastArchive
+
+        VStack(spacing: 0) {
+            Toolbar(title: "Archived") {
+                IconCircleButton(systemName: "xmark", title: "Quit Arkiv") {
+                    NSApp.terminate(nil)
+                }
+            }
+
+            ScrollView {
+                VStack(spacing: 20) {
+                    VStack(spacing: 0) {
+                        Circle()
+                            .fill(theme.accentSoft)
+                            .frame(width: 54, height: 54)
+                            .overlay {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 27, weight: .semibold))
+                                    .foregroundStyle(theme.accent)
+                            }
+                            .transition(.scale)
+
+                        Text("\(batch?.records.count ?? 0) \(batch?.records.count == 1 ? "file" : "files") archived")
+                            .font(.system(size: 21, weight: .semibold))
+                            .tracking(-0.35)
+                            .foregroundStyle(theme.text)
+                            .padding(.top, 14)
+
+                        Text("Sorted and moved out of \(store.watchFolderURL.lastPathComponent).")
+                            .font(.system(size: 12.5, weight: .regular))
+                            .foregroundStyle(theme.secondary)
+                            .padding(.top, 3)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 4)
+
+                    GroupBox(label: "Destination") {
+                        GroupRow(
+                            label: batch?.destinationFolder.shortHomePath ?? store.archiveRootDisplayName,
+                            leading: Image(systemName: "folder").foregroundStyle(theme.accent)
+                        )
+                    }
+
+                    GroupBox(label: "Breakdown") {
+                        BreakdownRow(label: "Images", value: batch?.imageCount ?? 0, systemName: "photo", color: theme.image)
+                        DividerLine()
+                        BreakdownRow(label: "Videos", value: batch?.videoCount ?? 0, systemName: "video", color: theme.video)
+                        DividerLine()
+                        BreakdownRow(label: "Other", value: batch?.otherCount ?? 0, systemName: "doc", color: theme.other)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 22)
+                .padding(.bottom, 16)
+            }
+            .scrollIndicators(.hidden)
+
+            BottomActionArea(alignment: .horizontal) {
+                GhostButton(systemName: "arrow.uturn.backward", title: "Undo") {
+                    store.undoLastArchive()
+                }
+                PillButton(systemName: "plus", title: "New batch") {
+                    store.beginNewSession()
+                }
+            }
         }
-        .foregroundStyle(ArkivStyle.secondary)
-        .frame(maxWidth: .infinity)
-        .frame(height: 160)
-        .background(GlassCard(cornerRadius: 16, opacity: 0.24))
     }
 }
 
-struct FileRow: View {
+private struct GroupBox<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let label: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        VStack(alignment: .leading, spacing: 7) {
+            SectionLabel(label)
+                .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                content
+            }
+            .background(theme.input)
+            .overlay {
+                RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                    .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+        }
+    }
+}
+
+private struct GroupRow<Leading: View, Control: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let label: String
+    var subtitle: String?
+    var value: String?
+    var leading: Leading
+    var action: (() -> Void)?
+    var control: Control
+
+    init(
+        label: String,
+        subtitle: String? = nil,
+        value: String? = nil,
+        leading: Leading,
+        action: (() -> Void)? = nil,
+        @ViewBuilder control: () -> Control
+    ) {
+        self.label = label
+        self.subtitle = subtitle
+        self.value = value
+        self.leading = leading
+        self.action = action
+        self.control = control()
+    }
+
+    var body: some View {
+        if let action {
+            Button(action: action) {
+                rowContent
+            }
+            .buttonStyle(.plain)
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        return HStack(spacing: 10) {
+            leading
+                .font(.system(size: 17, weight: .regular))
+                .frame(width: leadingFrame)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(1)
+
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(theme.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            control
+
+            if let value {
+                Text(value)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(theme.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 150, alignment: .trailing)
+            }
+
+            if action != nil {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(theme.tertiary)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, subtitle == nil ? 8 : 9)
+        .frame(minHeight: 42)
+        .contentShape(Rectangle())
+    }
+
+    private var leadingFrame: CGFloat {
+        Leading.self == EmptyView.self ? 0 : 18
+    }
+}
+
+private extension GroupRow where Leading == EmptyView, Control == EmptyView {
+    init(label: String, subtitle: String? = nil, value: String? = nil, action: (() -> Void)? = nil) {
+        self.init(label: label, subtitle: subtitle, value: value, leading: EmptyView(), action: action) {
+            EmptyView()
+        }
+    }
+}
+
+private extension GroupRow where Leading == EmptyView {
+    init(label: String, subtitle: String? = nil, value: String? = nil, action: (() -> Void)? = nil, @ViewBuilder control: () -> Control) {
+        self.init(label: label, subtitle: subtitle, value: value, leading: EmptyView(), action: action, control: control)
+    }
+}
+
+private extension GroupRow where Control == EmptyView {
+    init(label: String, subtitle: String? = nil, value: String? = nil, leading: Leading, action: (() -> Void)? = nil) {
+        self.init(label: label, subtitle: subtitle, value: value, leading: leading, action: action) {
+            EmptyView()
+        }
+    }
+}
+
+private struct BreakdownRow: View {
+    let label: String
+    let value: Int
+    let systemName: String
+    let color: Color
+
+    var body: some View {
+        GroupRow(label: label, value: "\(value)", leading: Image(systemName: systemName).foregroundStyle(color))
+    }
+}
+
+private struct SectionLabel: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Text(text.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.6)
+            .foregroundStyle(theme.tertiary)
+    }
+}
+
+private struct StatPillBar: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        HStack(spacing: 0) {
+            StatCell(value: store.detectedCount, label: "Detected", accent: false)
+            Rectangle().fill(theme.separator).frame(width: 0.5)
+            StatCell(value: store.readyCount, label: "Ready", accent: false)
+            Rectangle().fill(theme.separator).frame(width: 0.5)
+            StatCell(value: store.selectedCount, label: "Selected", accent: true)
+        }
+        .background(theme.fill)
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                .strokeBorder(theme.separator, lineWidth: 0.5)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+    }
+}
+
+private struct StatCell: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let value: Int
+    let label: String
+    let accent: Bool
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        VStack(spacing: 1) {
+            Text("\(value)")
+                .font(.system(size: 17, weight: .semibold))
+                .monospacedDigit()
+                .tracking(-0.25)
+                .foregroundStyle(accent ? theme.accent : theme.text)
+            Text(label)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(accent ? theme.accent : theme.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 7)
+        .background(accent ? theme.accentSoft : Color.clear)
+    }
+}
+
+private struct SearchField: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+    var custom = false
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+        let binding = custom ? $store.customExtensions : $store.searchText
+
+        HStack(spacing: 8) {
+            Image(systemName: custom ? "slider.horizontal.3" : "magnifyingglass")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(theme.secondary)
+
+            TextField(custom ? "Extension, e.g. psd" : "Search files", text: binding)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(theme.text)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 32)
+        .background(theme.input)
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+    }
+}
+
+private struct FilterMenu: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Menu {
+            ForEach(MediaKind.allCases) { kind in
+                Button {
+                    store.filter = kind
+                } label: {
+                    Label(kind == .all ? "All types" : kind.rawValue, systemImage: kind.menuSymbol)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: store.filter.menuSymbol)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(theme.accent)
+                Text(store.filter == .all ? "All types" : store.filter.rawValue)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(theme.text)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(theme.tertiary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 32)
+            .background(theme.input)
+            .overlay {
+                RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                    .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
+private struct FileRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var store: SessionStore
     let file: DetectedFile
 
     var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+        let selectable = file.readiness == .ready
+
         Button {
-            store.toggleSelection(for: file)
+            if selectable {
+                store.toggleSelection(for: file)
+            }
         } label: {
             HStack(spacing: 9) {
-                Image(systemName: iconName)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(iconColor)
-                    .frame(width: 26, height: 26)
-                    .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                Image(systemName: file.kind.fileSymbol)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(file.kind.typeColor(theme))
+                    .frame(width: 28, height: 28)
+                    .background(file.kind.typeColor(theme).opacity(theme.isDark ? 0.22 : 0.14))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(file.displayName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(ArkivStyle.ink)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(file.url.deletingPathExtension().lastPathComponent)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(theme.text)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
 
-                    Text("\(file.fileExtensionLabel) · \(file.sizeBytes.arkivByteString) · \(file.readiness.shortLabel)")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(statusColor)
-                        .lineLimit(1)
+                        Text(file.fileExtension.uppercased().isEmpty ? "FILE" : file.fileExtension.uppercased())
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(theme.secondary)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(theme.fill)
+                            .clipShape(Capsule())
+                    }
+
+                    HStack(spacing: 6) {
+                        Text(file.sizeBytes.arkivByteString)
+                            .monospacedDigit()
+                        Text("·")
+                        if file.readiness == .ready {
+                            Text("Ready")
+                        } else if file.readiness == .missing {
+                            Text("Missing")
+                        } else {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .scaleEffect(0.55)
+                                .frame(width: 11, height: 11)
+                            Text("Copying…")
+                        }
+                    }
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(file.readiness == .ready ? theme.secondary : theme.tertiary)
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                Image(systemName: file.isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(file.isSelected ? ArkivStyle.blue : ArkivStyle.muted)
+                if selectable {
+                    Image(systemName: file.isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(file.isSelected ? theme.accent : theme.tertiary)
+                }
             }
-            .padding(.horizontal, 9)
+            .padding(.horizontal, 8)
+            .frame(height: 40)
+            .background(file.isSelected && selectable ? theme.accentSoft : Color.clear)
+            .opacity(selectable ? 1 : 0.72)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!selectable)
+    }
+}
+
+private struct PillButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let systemName: String
+    let title: String
+    var count: Int?
+    var disabled = false
+    let action: () -> Void
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemName)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                if let count {
+                    Text("\(count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(disabled ? theme.tertiary : theme.accent)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(disabled ? theme.fill : Color.white.opacity(0.88))
+                        .clipShape(Capsule())
+                }
+            }
+            .foregroundStyle(disabled ? theme.tertiary : .white)
+            .padding(.horizontal, 19)
             .frame(height: 44)
-            .background(GlassCard(cornerRadius: 14, opacity: file.isSelected ? 0.32 : 0.22))
+            .background(disabled ? theme.fill : theme.accent)
+            .clipShape(Capsule())
+            .shadow(color: disabled ? .clear : theme.accent.opacity(0.22), radius: 14, x: 0, y: 8)
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+    }
+}
+
+private struct GhostButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let systemName: String
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Button(action: action) {
+            Label(title, systemImage: systemName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(theme.text)
+                .padding(.horizontal, 16)
+                .frame(height: 40)
+                .background(theme.fill)
+                .clipShape(Capsule())
         }
         .buttonStyle(.plain)
     }
+}
 
-    private var iconName: String {
-        switch file.kind {
+private struct IconCircleButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let systemName: String
+    let title: String
+    var role: ButtonRole?
+    let action: () -> Void
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Button(role: role, action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(role == .destructive ? theme.danger : theme.secondary)
+                .frame(width: 26, height: 26)
+                .background(theme.fill)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(title)
+    }
+}
+
+private enum BottomActionAlignment {
+    case centered
+    case horizontal
+}
+
+private struct BottomActionArea<Content: View>: View {
+    var alignment: BottomActionAlignment = .centered
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        Group {
+            if alignment == .horizontal {
+                HStack(spacing: 10) {
+                    content
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    content
+                    Spacer()
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 8)
+        .padding(.bottom, 18)
+    }
+}
+
+private struct DividerLine: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var inset: CGFloat = 13
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+        Rectangle()
+            .fill(theme.separator)
+            .frame(height: 0.5)
+            .padding(.leading, inset)
+    }
+}
+
+private extension MediaKind {
+    var menuSymbol: String {
+        switch self {
+        case .all: "square.grid.2x2"
         case .image: "photo"
-        case .video: "film"
+        case .video: "video"
+        case .other: "doc"
+        case .custom: "slider.horizontal.3"
+        }
+    }
+
+    var fileSymbol: String {
+        switch self {
+        case .image: "photo"
+        case .video: "video"
         case .other, .custom, .all: "doc"
         }
     }
 
-    private var iconColor: Color {
-        switch file.kind {
-        case .image: ArkivStyle.green
-        case .video: ArkivStyle.blue
-        case .other, .custom, .all: ArkivStyle.secondary
-        }
-    }
-
-    private var statusColor: Color {
-        switch file.readiness {
-        case .ready: .secondary
-        case .downloading: ArkivStyle.amber
-        case .missing: .red.opacity(0.65)
-        }
-    }
-}
-
-struct ArchiveBar: View {
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Button {
-                store.selectAllFiltered()
-            } label: {
-                Text("All")
-                    .frame(width: 44, height: 42)
-            }
-            .buttonStyle(GlassTextButtonStyle())
-
-            Button {
-                store.clearFilteredSelection()
-            } label: {
-                Text("None")
-                    .frame(width: 52, height: 42)
-            }
-            .buttonStyle(GlassTextButtonStyle())
-
-            Button {
-                store.archiveSelected()
-            } label: {
-                Label(store.selectedReadyFiles.isEmpty ? "Archive" : "Archive \(store.selectedReadyFiles.count)", systemImage: "archivebox.fill")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(store.selectedReadyFiles.isEmpty)
-        }
-    }
-}
-
-struct DonePanel: View {
-    @EnvironmentObject private var store: SessionStore
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(systemName: "checkmark")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(ArkivStyle.green)
-                .frame(width: 70, height: 70)
-                .background(GlassCard(cornerRadius: 35, opacity: 0.28))
-
-            VStack(spacing: 7) {
-                Text("Archived")
-                    .font(.system(size: 24, weight: .semibold))
-
-                if let batch = store.lastArchive {
-                    Text("\(batch.records.count) files")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(ArkivStyle.secondary)
-
-                    Text(batch.destinationFolder)
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .foregroundStyle(ArkivStyle.secondary)
-                        .padding(.horizontal, 10)
-                        .frame(height: 28)
-                        .background(.white.opacity(0.16), in: Capsule())
-                }
-            }
-
-            Spacer()
-
-            HStack(spacing: 8) {
-                Button {
-                    store.undoLastArchive()
-                } label: {
-                    Label("Undo", systemImage: "arrow.uturn.backward")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(GlassWideButtonStyle())
-
-                Button {
-                    store.beginNewSession()
-                } label: {
-                    Label("New", systemImage: "plus")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(PrimaryButtonStyle())
-            }
-        }
-    }
-}
-
-struct GlassCard: View {
-    let cornerRadius: CGFloat
-    let opacity: Double
-
-    var body: some View {
-        let fillOpacity = min(0.96, 0.58 + opacity)
-
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(ArkivStyle.card.opacity(fillOpacity))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(ArkivStyle.stroke, lineWidth: 0.8)
-            }
-            .shadow(color: .white.opacity(0.46), radius: 8, x: -2, y: -2)
-            .shadow(color: .black.opacity(0.045), radius: 10, x: 0, y: 5)
-    }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(isEnabled ? .white : ArkivStyle.secondary)
-            .frame(height: 46)
-            .background(
-                isEnabled
-                    ? ArkivStyle.ink.opacity(configuration.isPressed ? 0.82 : 0.94)
-                    : ArkivStyle.card.opacity(0.78),
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(isEnabled ? Color.clear : ArkivStyle.stroke, lineWidth: 0.8)
-            }
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-    }
-}
-
-struct IconButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(ArkivStyle.secondary)
-            .background(GlassCard(cornerRadius: 13, opacity: configuration.isPressed ? 0.34 : 0.22))
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-    }
-}
-
-struct GlassTextButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 12, weight: .bold, design: .rounded))
-            .foregroundStyle(ArkivStyle.secondary)
-            .background(GlassCard(cornerRadius: 14, opacity: configuration.isPressed ? 0.32 : 0.22))
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-    }
-}
-
-struct GlassWideButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .bold, design: .rounded))
-            .foregroundStyle(ArkivStyle.ink)
-            .frame(height: 46)
-            .background(GlassCard(cornerRadius: 16, opacity: configuration.isPressed ? 0.34 : 0.24))
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-    }
-}
-
-private extension DetectedFile {
-    var fileExtensionLabel: String {
-        fileExtension.isEmpty ? "file" : ".\(fileExtension)"
-    }
-}
-
-private extension FileReadiness {
-    var shortLabel: String {
+    func typeColor(_ theme: ArkivTheme) -> Color {
         switch self {
-        case .ready: "ready"
-        case .downloading: "loading"
-        case .missing: "missing"
+        case .image: theme.image
+        case .video: theme.video
+        case .other, .custom, .all: theme.other
         }
+    }
+}
+
+private extension String {
+    var shortHomePath: String {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if self == home {
+            return "~"
+        }
+        if hasPrefix(home + "/") {
+            return "~" + dropFirst(home.count)
+        }
+        return self
     }
 }

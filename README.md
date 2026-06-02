@@ -5,11 +5,11 @@ This is the first native macOS rewrite of Arkiv. It keeps the quiet floating-pan
 - Watches `~/Downloads` with FSEvents.
 - Lets you choose the folder to watch.
 - Lets you choose the archive destination.
-- Lets you monitor for 15 minutes, 30 minutes, 1 hour, or until stopped.
+- Lets you monitor for 15 minutes, 30 minutes, 1 hour, or until you stop it.
 - Supports pause, resume, cancel, and quit from the floating panel.
 - Detects all regular files, not only media.
 - Classifies files as images, videos, or other using extension and `UTType`.
-- Supports filters: All, Images, Videos, Other, and Custom extensions.
+- Supports filters: All types, Images, Videos, Other, and Custom extensions.
 - Supports filename search and multi-select.
 - Waits for files to become stable before marking them ready.
 - Archives selected ready files into `{Archive Root}/{Target}/Images`, `Videos`, or `Other`.
@@ -28,8 +28,8 @@ V1 is intentionally small. The next high-impact pass should add real thumbnails,
 
 The current native UI is a fixed-size floating glass panel. It intentionally avoids resizable dashboard behavior:
 
-- 386 x 520 fixed floating window.
+- 380 x 524 fixed floating window.
 - Hidden traffic-light controls.
-- Native translucent material backdrop.
-- Compact setup, watching, and archived states.
-- Icon-first filters and one primary archive action.
+- Native `.ultraThinMaterial` glass backdrop with semantic light and dark colors.
+- Layout B: macOS toolbar, grouped settings rows, grouped file list, and floating pill actions.
+- Plain-language controls for monitoring duration and recent-file inclusion.
