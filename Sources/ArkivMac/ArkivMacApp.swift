@@ -11,6 +11,7 @@ struct ArkivMacApp: App {
             RootView()
                 .environmentObject(store)
                 .frame(width: 380, height: 524)
+                .ignoresSafeArea()
                 .background(WindowConfigurator())
         }
         .windowStyle(.hiddenTitleBar)
@@ -37,6 +38,7 @@ struct WindowConfigurator: NSViewRepresentable {
             window.titlebarAppearsTransparent = true
             window.styleMask.insert(.fullSizeContentView)
             window.styleMask.remove(.resizable)
+            window.titleVisibility = .hidden
             window.standardWindowButton(.closeButton)?.isHidden = true
             window.standardWindowButton(.miniaturizeButton)?.isHidden = true
             window.standardWindowButton(.zoomButton)?.isHidden = true
