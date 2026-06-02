@@ -68,12 +68,6 @@ struct RootView: View {
             RoundedRectangle(cornerRadius: theme.radius, style: .continuous)
                 .strokeBorder(theme.panelBorder, lineWidth: 0.5)
         }
-        .shadow(
-            color: theme.isDark ? .black.opacity(0.55) : Color(red: 0.08, green: 0.11, blue: 0.15).opacity(0.22),
-            radius: theme.isDark ? 56 : 44,
-            x: 0,
-            y: theme.isDark ? 18 : 16
-        )
         .animation(.smooth(duration: 0.20), value: store.viewMode)
     }
 }

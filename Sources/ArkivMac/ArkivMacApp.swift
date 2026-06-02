@@ -39,6 +39,8 @@ struct WindowConfigurator: NSViewRepresentable {
             window.hasShadow = false
             window.styleMask = [.borderless, .fullSizeContentView]
             window.titleVisibility = .hidden
+            window.contentView?.wantsLayer = true
+            window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
             window.setContentSize(NSSize(width: 380, height: 524))
             window.minSize = NSSize(width: 380, height: 524)
             window.maxSize = NSSize(width: 380, height: 524)
