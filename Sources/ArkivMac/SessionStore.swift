@@ -12,6 +12,7 @@ final class SessionStore: ObservableObject {
     @Published var viewMode: ViewMode = .ready
     @Published var runState: SessionRunState = .idle
     @Published var targetName = ""
+    @Published var setName = ""
     @Published var detectedFiles: [DetectedFile] = []
     @Published var filter: MediaKind = .all
     @Published var sortMode: FileSortMode = .createdAt
@@ -52,6 +53,15 @@ final class SessionStore: ObservableObject {
     var sanitizedTargetName: String {
         let sanitized = targetName.arkivSanitizedFileComponent
         return sanitized.isEmpty ? "Untitled" : sanitized
+    }
+
+    var suggestedSetName: String {
+        suggestedNextSetName(for: sanitizedTargetName)
+    }
+
+    var effectiveSetName: String {
+        let sanitized = setName.arkivSanitizedFileComponent
+        return sanitized.isEmpty ? suggestedSetName : sanitized
     }
 
     var filteredFiles: [DetectedFile] {
@@ -263,6 +273,7 @@ final class SessionStore: ObservableObject {
         lastArchive = nil
         stopSession()
         targetName = ""
+        setName = ""
         searchText = ""
         filter = .all
     }
@@ -459,15 +470,19 @@ final class SessionStore: ObservableObject {
     }
 
     private func createArchiveBatch(for files: [DetectedFile]) throws -> ArchiveBatch {
-        let destinationFolder = archiveRootURL
+        let subjectFolder = archiveRootURL
             .appendingPathComponent(sanitizedTargetName)
+        try FileManager.default.createDirectory(at: subjectFolder, withIntermediateDirectories: true)
+        try migrateFlatTypeFoldersIfNeeded(in: subjectFolder)
 
+        let destinationFolder = subjectFolder
+            .appendingPathComponent(effectiveSetName)
         try FileManager.default.createDirectory(at: destinationFolder, withIntermediateDirectories: true)
 
         let plannedMoves: [(DetectedFile, URL)] = files.enumerated().map { index, file in
             let typedFolder = destinationFolder.appendingPathComponent(file.archiveSubfolderName)
             try? FileManager.default.createDirectory(at: typedFolder, withIntermediateDirectories: true)
-            let baseName = "\(sanitizedTargetName)_\(Self.fileNameDateFormatter.string(from: Date()))_\(String(format: "%03d", index + 1))"
+            let baseName = "\(sanitizedTargetName)_\(effectiveSetName)_\(Self.fileNameDateFormatter.string(from: Date()))_\(String(format: "%03d", index + 1))"
             let proposedURL = typedFolder
                 .appendingPathComponent(baseName)
                 .appendingPathExtension(file.fileExtension.isEmpty ? file.url.pathExtension : file.fileExtension)
@@ -503,6 +518,7 @@ final class SessionStore: ObservableObject {
         return ArchiveBatch(
             id: UUID(),
             targetName: sanitizedTargetName,
+            setName: effectiveSetName,
             destinationFolder: destinationFolder.path,
             createdAt: Date(),
             records: records
@@ -533,6 +549,67 @@ final class SessionStore: ObservableObject {
         }
 
         return candidate
+    }
+
+    private func suggestedNextSetName(for subjectName: String) -> String {
+        let subjectFolder = archiveRootURL.appendingPathComponent(subjectName)
+        var highestSetNumber = subjectHasFlatTypeFolders(subjectFolder) ? 1 : 0
+
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: subjectFolder,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return "Set 001"
+        }
+
+        for url in urls {
+            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
+            guard let number = Self.setNumber(from: url.lastPathComponent) else { continue }
+            highestSetNumber = max(highestSetNumber, number)
+        }
+
+        return Self.formattedSetName(highestSetNumber + 1)
+    }
+
+    private func subjectHasFlatTypeFolders(_ subjectFolder: URL) -> Bool {
+        Self.archiveTypeFolderNames.contains { folderName in
+            let url = subjectFolder.appendingPathComponent(folderName)
+            return (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+        }
+    }
+
+    private func migrateFlatTypeFoldersIfNeeded(in subjectFolder: URL) throws {
+        let set001Folder = subjectFolder.appendingPathComponent(Self.formattedSetName(1))
+        var migratedAnyFolder = false
+
+        for folderName in Self.archiveTypeFolderNames {
+            let flatFolder = subjectFolder.appendingPathComponent(folderName)
+            guard (try? flatFolder.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true else { continue }
+
+            let targetFolder = set001Folder.appendingPathComponent(folderName)
+            try FileManager.default.createDirectory(at: targetFolder, withIntermediateDirectories: true)
+
+            let contents = try FileManager.default.contentsOfDirectory(
+                at: flatFolder,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+
+            for item in contents {
+                try FileManager.default.moveItem(
+                    at: item,
+                    to: uniqueURL(for: targetFolder.appendingPathComponent(item.lastPathComponent))
+                )
+            }
+
+            try? FileManager.default.removeItem(at: flatFolder)
+            migratedAnyFolder = true
+        }
+
+        if migratedAnyFolder {
+            statusMessage = "Moved existing files into Set 001"
+        }
     }
 
     private func tickSession() {
@@ -608,6 +685,22 @@ final class SessionStore: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
+
+    private static let archiveTypeFolderNames = ["Images", "Videos", "Other"]
+
+    private static func formattedSetName(_ number: Int) -> String {
+        "Set \(String(format: "%03d", max(1, number)))"
+    }
+
+    private static func setNumber(from folderName: String) -> Int? {
+        let pattern = /^Set\s+(\d+)$/
+        guard let match = folderName.wholeMatch(of: pattern),
+              let number = Int(match.1)
+        else {
+            return nil
+        }
+        return number
+    }
 
     private static let darkAppearanceDefaultsKey = "ArkivUsesDarkAppearance"
 }

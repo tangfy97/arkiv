@@ -187,8 +187,19 @@ private struct SetupPanel: View {
             ScrollView {
                 VStack(spacing: 14) {
                     GroupBox(label: "Batch") {
-                        GroupRow(label: "Name") {
+                        GroupRow(label: "Subject") {
                             TextField("", text: $store.targetName, prompt: Text("Required").foregroundStyle(theme.tertiary))
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(theme.text)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 170)
+                        }
+
+                        DividerLine()
+
+                        GroupRow(label: "Set") {
+                            TextField("", text: $store.setName, prompt: Text(store.suggestedSetName).foregroundStyle(theme.tertiary))
                                 .textFieldStyle(.plain)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(theme.text)
@@ -302,7 +313,7 @@ private struct MonitoringPanel: View {
         let theme = ArkivTheme(scheme: colorScheme)
 
         VStack(spacing: 0) {
-            Toolbar(title: store.sanitizedTargetName, showsStatus: true) {
+            Toolbar(title: "\(store.sanitizedTargetName) · \(store.effectiveSetName)", showsStatus: true) {
                 HStack(spacing: 6) {
                     IconCircleButton(systemName: store.runState == .paused ? "play.fill" : "pause.fill", title: store.runState == .paused ? "Resume" : "Pause") {
                         store.togglePause()

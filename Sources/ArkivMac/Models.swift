@@ -159,6 +159,7 @@ struct ArchiveRecord: Codable, Identifiable {
 struct ArchiveBatch: Codable, Identifiable {
     let id: UUID
     let targetName: String
+    let setName: String
     let destinationFolder: String
     let createdAt: Date
     let records: [ArchiveRecord]

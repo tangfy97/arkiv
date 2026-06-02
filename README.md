@@ -12,17 +12,28 @@ This is the first native macOS rewrite of Arkiv. It keeps the quiet floating-pan
 - Supports filters: All types, Images, Videos, Other, and Custom extensions.
 - Supports filename search and multi-select.
 - Waits for files to become stable before marking them ready.
-- Archives selected ready files into `{Archive Root}/{Target}/Images`, `Videos`, or `Other`.
+- Archives selected ready files into `{Archive Root}/{Subject}/{Set}/Images`, `Videos`, or `Other`.
+- Suggests the next set automatically, such as `Set 002` when `Set 001` already exists.
+- Migrates old flat `{Subject}/Images`, `Videos`, and `Other` folders into `{Subject}/Set 001/` before archiving new sets.
 - Writes a JSON ledger under `~/Pictures/Arkiv/.arkiv-ledger/`.
 - Supports undo for the last archive batch.
 
-Run it from this folder:
+Run it from this folder for development and debug:
 
 ```sh
 swift run ArkivMac
 ```
 
-V1 is intentionally small. The next high-impact pass should add real thumbnails, duplicate detection, menu bar presence, global shortcuts, persisted preferences, and a packaged `.app` target.
+Build a double-clickable app bundle:
+
+```sh
+scripts/build_app.sh debug
+open dist/Arkiv.app
+```
+
+Use `swift run ArkivMac` when you want fast terminal debugging. Use `dist/Arkiv.app` when you want normal daily use without a terminal.
+
+V1 is intentionally small. The next high-impact pass should add real thumbnails, duplicate detection, menu bar presence, global shortcuts, and persisted folder preferences.
 
 ## UI direction
 
