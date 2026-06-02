@@ -12,6 +12,7 @@ struct ArkivMacApp: App {
                 .environmentObject(store)
                 .frame(width: 380, height: 524)
                 .ignoresSafeArea()
+                .preferredColorScheme(store.usesDarkAppearance ? .dark : .light)
                 .background(WindowConfigurator())
         }
         .windowStyle(.hiddenTitleBar)

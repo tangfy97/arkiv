@@ -123,6 +123,8 @@ private struct Toolbar: View {
 
                 Spacer(minLength: 8)
 
+                AppearanceButton()
+
                 trailing
             }
             .padding(.top, 20)
@@ -131,6 +133,28 @@ private struct Toolbar: View {
         }
         .frame(height: 58)
         .contentShape(Rectangle())
+    }
+}
+
+private struct AppearanceButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Button {
+            store.toggleAppearance()
+        } label: {
+            Image(systemName: store.usesDarkAppearance ? "sun.max" : "moon")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(theme.secondary)
+                .frame(width: 26, height: 26)
+                .background(theme.fill)
+                .clipShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(store.usesDarkAppearance ? "Switch to Light Mode" : "Switch to Dark Mode")
     }
 }
 

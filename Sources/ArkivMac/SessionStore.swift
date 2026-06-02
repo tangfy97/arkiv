@@ -4,6 +4,11 @@ import Foundation
 
 @MainActor
 final class SessionStore: ObservableObject {
+    @Published var usesDarkAppearance: Bool {
+        didSet {
+            UserDefaults.standard.set(usesDarkAppearance, forKey: Self.darkAppearanceDefaultsKey)
+        }
+    }
     @Published var viewMode: ViewMode = .ready
     @Published var runState: SessionRunState = .idle
     @Published var targetName = ""
@@ -37,6 +42,7 @@ final class SessionStore: ObservableObject {
             .appendingPathComponent("Pictures")
             .appendingPathComponent("Arkiv")
     ) {
+        self.usesDarkAppearance = UserDefaults.standard.bool(forKey: Self.darkAppearanceDefaultsKey)
         self.watchFolderURL = downloadsURL
         self.archiveRootURL = archiveRootURL
     }
@@ -69,6 +75,10 @@ final class SessionStore: ObservableObject {
     var readyCount: Int { detectedFiles.filter { $0.readiness == .ready }.count }
     var downloadingCount: Int { detectedFiles.filter { $0.readiness == .downloading }.count }
     var selectedReadySize: Int64 { selectedReadyFiles.reduce(0) { $0 + $1.sizeBytes } }
+
+    func toggleAppearance() {
+        usesDarkAppearance.toggle()
+    }
 
     func startSession() {
         guard !targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
@@ -565,6 +575,8 @@ final class SessionStore: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
+
+    private static let darkAppearanceDefaultsKey = "ArkivUsesDarkAppearance"
 }
 
 enum ScanError: LocalizedError {
