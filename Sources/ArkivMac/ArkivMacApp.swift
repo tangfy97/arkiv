@@ -4,19 +4,11 @@ import SwiftUI
 @main
 struct ArkivMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var store = SessionStore()
 
     var body: some Scene {
-        WindowGroup {
-            RootView()
-                .environmentObject(store)
-                .frame(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
-                .ignoresSafeArea()
-                .preferredColorScheme(store.usesDarkAppearance ? .dark : .light)
-                .background(WindowConfigurator())
+        Settings {
+            EmptyView()
         }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
     }
 }
 
@@ -25,34 +17,61 @@ private enum AppWindowMetrics {
     static let height: CGFloat = 540
 }
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    private let store = SessionStore()
+    private var window: InputCapableWindow?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        showMainWindow()
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        showMainWindow()
+        return true
+    }
+
+    private func showMainWindow() {
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let size = NSSize(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
+        let rootView = RootView()
+            .environmentObject(store)
+            .frame(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
+            .ignoresSafeArea()
+
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        let window = InputCapableWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Arkiv"
+        window.level = .floating
+        window.isMovableByWindowBackground = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.minSize = size
+        window.maxSize = size
+        window.contentView = hostingView
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        self.window = window
     }
 }
 
-struct WindowConfigurator: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            guard let window = view.window else { return }
-            window.title = "Arkiv"
-            window.level = .floating
-            window.isMovableByWindowBackground = true
-            window.isOpaque = false
-            window.backgroundColor = .clear
-            window.hasShadow = false
-            window.styleMask = [.borderless, .fullSizeContentView]
-            window.titleVisibility = .hidden
-            window.contentView?.wantsLayer = true
-            window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
-            let size = NSSize(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
-            window.setContentSize(size)
-            window.minSize = size
-            window.maxSize = size
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
+final class InputCapableWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
