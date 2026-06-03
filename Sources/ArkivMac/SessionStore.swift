@@ -55,13 +55,27 @@ final class SessionStore: ObservableObject {
         return sanitized.isEmpty ? "Untitled" : sanitized
     }
 
-    var suggestedSetName: String {
-        suggestedNextSetName(for: sanitizedTargetName)
+    var suggestedSetNumber: Int {
+        suggestedNextSetNumber(for: sanitizedTargetName)
+    }
+
+    var suggestedSetNumberText: String {
+        Self.paddedSetNumber(suggestedSetNumber)
     }
 
     var effectiveSetName: String {
-        let sanitized = setName.arkivSanitizedFileComponent
-        return sanitized.isEmpty ? suggestedSetName : sanitized
+        Self.formattedSetName(effectiveSetNumber)
+    }
+
+    private var effectiveSetNumber: Int {
+        guard let number = Int(Self.normalizedSetDigits(setName)), number > 0 else {
+            return suggestedSetNumber
+        }
+        return number
+    }
+
+    func updateSetNumberInput(_ value: String) {
+        setName = Self.normalizedSetDigits(value)
     }
 
     var filteredFiles: [DetectedFile] {
@@ -551,7 +565,7 @@ final class SessionStore: ObservableObject {
         return candidate
     }
 
-    private func suggestedNextSetName(for subjectName: String) -> String {
+    private func suggestedNextSetNumber(for subjectName: String) -> Int {
         let subjectFolder = archiveRootURL.appendingPathComponent(subjectName)
         var highestSetNumber = subjectHasFlatTypeFolders(subjectFolder) ? 1 : 0
 
@@ -560,7 +574,7 @@ final class SessionStore: ObservableObject {
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
         ) else {
-            return "Set 001"
+            return 1
         }
 
         for url in urls {
@@ -569,7 +583,7 @@ final class SessionStore: ObservableObject {
             highestSetNumber = max(highestSetNumber, number)
         }
 
-        return Self.formattedSetName(highestSetNumber + 1)
+        return highestSetNumber + 1
     }
 
     private func subjectHasFlatTypeFolders(_ subjectFolder: URL) -> Bool {
@@ -687,9 +701,18 @@ final class SessionStore: ObservableObject {
     }()
 
     private static let archiveTypeFolderNames = ["Images", "Videos", "Other"]
+    private static let maxSetDigits = 3
 
     private static func formattedSetName(_ number: Int) -> String {
-        "Set \(String(format: "%03d", max(1, number)))"
+        "Set \(paddedSetNumber(number))"
+    }
+
+    private static func paddedSetNumber(_ number: Int) -> String {
+        String(format: "%03d", max(1, number))
+    }
+
+    private static func normalizedSetDigits(_ value: String) -> String {
+        String(value.filter(\.isNumber).prefix(maxSetDigits))
     }
 
     private static func setNumber(from folderName: String) -> Int? {

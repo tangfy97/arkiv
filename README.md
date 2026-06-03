@@ -14,6 +14,7 @@ This is the first native macOS rewrite of Arkiv. It keeps the quiet floating-pan
 - Waits for files to become stable before marking them ready.
 - Archives selected ready files into `{Archive Root}/{Subject}/{Set}/Images`, `Videos`, or `Other`.
 - Suggests the next set automatically, such as `Set 002` when `Set 001` already exists.
+- Lets you enter only the set number; Arkiv still creates folders like `Set 001`.
 - Migrates old flat `{Subject}/Images`, `Videos`, and `Other` folders into `{Subject}/Set 001/` before archiving new sets.
 - Writes a JSON ledger under `~/Pictures/Arkiv/.arkiv-ledger/`.
 - Supports undo for the last archive batch.
@@ -39,8 +40,8 @@ V1 is intentionally small. The next high-impact pass should add real thumbnails,
 
 The current native UI is a fixed-size floating glass panel. It intentionally avoids resizable dashboard behavior:
 
-- 380 x 524 fixed floating window.
+- 400 x 540 fixed floating window.
 - Hidden traffic-light controls.
 - Native `.ultraThinMaterial` glass backdrop with semantic light and dark colors.
-- Layout B: macOS toolbar, grouped settings rows, grouped file list, and floating pill actions.
+- Layout B: compact macOS controls, grouped settings rows, grouped file list, and floating actions.
 - Plain-language controls for monitoring duration and recent-file inclusion.

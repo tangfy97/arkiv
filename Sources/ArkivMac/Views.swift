@@ -62,6 +62,7 @@ struct RootView: View {
                     ArchivedPanel()
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         .clipShape(RoundedRectangle(cornerRadius: theme.radius, style: .continuous))
         .overlay {
@@ -178,102 +179,121 @@ private struct SetupPanel: View {
         let theme = ArkivTheme(scheme: colorScheme)
 
         VStack(spacing: 0) {
-            Toolbar(title: "Set up") {
+            HStack(spacing: 7) {
+                Spacer()
+                AppearanceButton()
                 IconCircleButton(systemName: "xmark", title: "Quit Arkiv") {
                     NSApp.terminate(nil)
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.top, 13)
+            .padding(.bottom, 10)
 
-            ScrollView {
-                VStack(spacing: 14) {
-                    GroupBox(label: "Batch") {
-                        GroupRow(label: "Subject") {
-                            TextField("", text: $store.targetName, prompt: Text("Required").foregroundStyle(theme.tertiary))
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(theme.text)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 170)
-                        }
+            VStack(spacing: 12) {
+                SetupCard {
+                    GroupRow(label: "Subject") {
+                        TextField("", text: $store.targetName, prompt: Text("Required").foregroundStyle(theme.tertiary))
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(theme.text)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 170)
+                    }
 
-                        DividerLine()
+                    DividerLine()
 
-                        GroupRow(label: "Set") {
-                            TextField("", text: $store.setName, prompt: Text(store.suggestedSetName).foregroundStyle(theme.tertiary))
-                                .textFieldStyle(.plain)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(theme.text)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 170)
+                    GroupRow(label: "Set") {
+                        SetNumberField()
+                    }
+                }
+
+                SetupCard {
+                    GroupRow(
+                        label: "Watch",
+                        value: store.watchFolderURL.lastPathComponent,
+                        leading: Image(systemName: "folder").foregroundStyle(theme.accent),
+                        action: { store.chooseWatchFolder() }
+                    )
+
+                    DividerLine()
+
+                    GroupRow(
+                        label: "Archive",
+                        value: store.archiveRootURL.lastPathComponent,
+                        leading: Image(systemName: "arrow.down.to.line").foregroundStyle(theme.accent),
+                        action: { store.chooseArchiveRoot() }
+                    )
+                }
+
+                SetupCard {
+                    GroupRow(label: "Duration", value: store.monitorDuration.fullLabel, action: {
+                        durationOpen.toggle()
+                    })
+
+                    if durationOpen {
+                        VStack(spacing: 8) {
+                            DividerLine()
+                            DurationSegmented()
+                                .padding(.horizontal, 12)
+                                .padding(.bottom, 12)
                         }
                     }
 
-                    GroupBox(label: "Folders") {
-                        GroupRow(
-                            label: "Watch",
-                            value: store.watchFolderURL.lastPathComponent,
-                            leading: Image(systemName: "folder").foregroundStyle(theme.accent),
-                            action: { store.chooseWatchFolder() }
-                        )
+                    DividerLine()
 
-                        DividerLine()
-
-                        GroupRow(
-                            label: "Archive to",
-                            value: store.archiveRootURL.lastPathComponent,
-                            leading: Image(systemName: "arrow.down.to.line").foregroundStyle(theme.accent),
-                            action: { store.chooseArchiveRoot() }
-                        )
+                    GroupRow(label: "Recent files") {
+                        Toggle("", isOn: $store.includeRescueMode)
+                            .toggleStyle(.switch)
+                            .labelsHidden()
                     }
 
-                    GroupBox(label: "Monitoring") {
-                        GroupRow(label: "Duration", value: store.monitorDuration.fullLabel, action: {
-                            durationOpen.toggle()
-                        })
-
-                        if durationOpen {
-                            VStack(spacing: 8) {
-                                DividerLine()
-                                DurationSegmented()
-                                    .padding(.horizontal, 12)
-                                    .padding(.bottom, 12)
-                            }
-                        }
-
-                        DividerLine()
-
-                        GroupRow(label: "Include recent files", subtitle: "Catch files added just before you started.") {
-                            Toggle("", isOn: $store.includeRescueMode)
-                                .toggleStyle(.switch)
-                                .labelsHidden()
-                        }
-
-                        if store.includeRescueMode {
-                            VStack(alignment: .leading, spacing: 7) {
-                                DividerLine()
-                                Text("From the last")
-                                    .font(.system(size: 11, weight: .regular))
-                                    .foregroundStyle(theme.secondary)
-                                    .padding(.horizontal, 12)
-                                RecentSegmented()
-                                    .padding(.horizontal, 12)
-                                    .padding(.bottom, 12)
-                            }
+                    if store.includeRescueMode {
+                        VStack(alignment: .leading, spacing: 7) {
+                            DividerLine()
+                            RecentSegmented()
+                                .padding(.horizontal, 12)
+                                .padding(.bottom, 12)
                         }
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-                .padding(.bottom, 8)
             }
-            .scrollIndicators(.hidden)
+            .padding(.horizontal, 14)
+
+            Spacer(minLength: 0)
 
             BottomActionArea {
-                PillButton(systemName: "play.fill", title: "Start monitoring", disabled: store.targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                StartIconButton(disabled: store.targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
                     store.startSession()
                 }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+}
+
+private struct SetNumberField: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+        let binding = Binding<String>(
+            get: { store.setName },
+            set: { store.updateSetNumberInput($0) }
+        )
+
+        HStack(spacing: 5) {
+            Text("Set")
+                .foregroundStyle(theme.secondary)
+            TextField("", text: binding, prompt: Text(store.suggestedSetNumberText).foregroundStyle(theme.tertiary))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .foregroundStyle(theme.text)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 34)
+        }
+        .font(.system(size: 13, weight: .semibold))
     }
 }
 
@@ -288,6 +308,7 @@ private struct DurationSegmented: View {
         }
         .pickerStyle(.segmented)
         .controlSize(.small)
+        .labelsHidden()
     }
 }
 
@@ -302,6 +323,7 @@ private struct RecentSegmented: View {
         }
         .pickerStyle(.segmented)
         .controlSize(.small)
+        .labelsHidden()
     }
 }
 
@@ -512,6 +534,25 @@ private struct GroupBox<Content: View>: View {
             }
             .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
         }
+    }
+}
+
+private struct SetupCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        VStack(spacing: 0) {
+            content
+        }
+        .background(theme.input)
+        .overlay {
+            RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
     }
 }
 
@@ -947,6 +988,29 @@ private struct PillButton: View {
         }
         .buttonStyle(.plain)
         .disabled(disabled)
+    }
+}
+
+private struct StartIconButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var disabled = false
+    let action: () -> Void
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        Button(action: action) {
+            Image(systemName: "play.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(disabled ? theme.tertiary : .white)
+                .frame(width: 58, height: 58)
+                .background(disabled ? theme.fill : theme.accent)
+                .clipShape(Circle())
+                .shadow(color: disabled ? .clear : theme.accent.opacity(0.24), radius: 18, x: 0, y: 10)
+        }
+        .buttonStyle(.plain)
+        .disabled(disabled)
+        .help("Start")
     }
 }
 

@@ -10,7 +10,7 @@ struct ArkivMacApp: App {
         WindowGroup {
             RootView()
                 .environmentObject(store)
-                .frame(width: 380, height: 524)
+                .frame(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
                 .ignoresSafeArea()
                 .preferredColorScheme(store.usesDarkAppearance ? .dark : .light)
                 .background(WindowConfigurator())
@@ -18,6 +18,11 @@ struct ArkivMacApp: App {
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
     }
+}
+
+private enum AppWindowMetrics {
+    static let width: CGFloat = 400
+    static let height: CGFloat = 540
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -41,9 +46,10 @@ struct WindowConfigurator: NSViewRepresentable {
             window.titleVisibility = .hidden
             window.contentView?.wantsLayer = true
             window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
-            window.setContentSize(NSSize(width: 380, height: 524))
-            window.minSize = NSSize(width: 380, height: 524)
-            window.maxSize = NSSize(width: 380, height: 524)
+            let size = NSSize(width: AppWindowMetrics.width, height: AppWindowMetrics.height)
+            window.setContentSize(size)
+            window.minSize = size
+            window.maxSize = size
         }
         return view
     }
