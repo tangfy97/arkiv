@@ -5,6 +5,7 @@ enum ViewMode {
     case ready
     case watching
     case archived
+    case profiles
 }
 
 enum SessionRunState {
@@ -74,6 +75,21 @@ enum FileSortMode: String, CaseIterable, Identifiable {
     case name = "Name"
 
     var id: String { rawValue }
+}
+
+enum ProfileEditorMode: String, CaseIterable, Identifiable {
+    case edit = "Edit"
+    case preview = "Preview"
+
+    var id: String { rawValue }
+}
+
+struct ProfileSubject: Identifiable, Hashable {
+    let name: String
+    let url: URL
+    let hasProfile: Bool
+
+    var id: String { url.path }
 }
 
 enum FileReadiness: String {

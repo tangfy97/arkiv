@@ -16,6 +16,9 @@ This is the first native macOS rewrite of Arkiv. It keeps the quiet floating-pan
 - Suggests the next set automatically, such as `Set 002` when `Set 001` already exists.
 - Lets you enter only the set number; Arkiv still creates folders like `Set 001`.
 - Migrates old flat `{Subject}/Images`, `Videos`, and `Other` folders into `{Subject}/Set 001/` before archiving new sets.
+- Adds a separate Profiles entry for subject-level Markdown data.
+- Saves profile data as `{Archive Root}/{Subject}/profile.md`.
+- Supports existing subject selection, paste-from-clipboard, template reset, edit mode, and rendered preview.
 - Writes a JSON ledger under `~/Pictures/Arkiv/.arkiv-ledger/`.
 - Supports undo for the last archive batch.
 

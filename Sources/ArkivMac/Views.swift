@@ -60,6 +60,8 @@ struct RootView: View {
                     MonitoringPanel()
                 case .archived:
                     ArchivedPanel()
+                case .profiles:
+                    ProfilePanel()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -181,6 +183,9 @@ private struct SetupPanel: View {
         VStack(spacing: 0) {
             HStack(spacing: 7) {
                 Spacer()
+                IconCircleButton(systemName: "person.crop.circle", title: "Profiles") {
+                    store.openProfiles()
+                }
                 AppearanceButton()
                 IconCircleButton(systemName: "xmark", title: "Quit Arkiv") {
                     NSApp.terminate(nil)
@@ -509,6 +514,237 @@ private struct ArchivedPanel: View {
                 }
             }
         }
+    }
+}
+
+private struct ProfilePanel: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject private var store: SessionStore
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        VStack(spacing: 0) {
+            Toolbar(title: "Profiles") {
+                IconCircleButton(systemName: "xmark", title: "Back") {
+                    store.closeProfiles()
+                }
+            }
+
+            VStack(spacing: 10) {
+                SetupCard {
+                    GroupRow(label: "Subject") {
+                        Menu {
+                            if store.profileSubjects.isEmpty {
+                                Text("No archived subjects")
+                            } else {
+                                ForEach(store.profileSubjects) { subject in
+                                    Button {
+                                        store.selectProfileSubject(subject)
+                                    } label: {
+                                        Label(subject.name, systemImage: subject.hasProfile ? "checkmark.circle" : "folder")
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(theme.secondary)
+                                .frame(width: 24, height: 24)
+                                .background(theme.fill)
+                                .clipShape(Circle())
+                        }
+                        .menuStyle(.borderlessButton)
+
+                        TextField("", text: $store.profileSubjectName, prompt: Text("Name").foregroundStyle(theme.tertiary))
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(theme.text)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 148)
+                            .onSubmit {
+                                store.loadProfileMarkdownForCurrentSubject()
+                            }
+                    }
+
+                    DividerLine()
+
+                    GroupRow(label: "File", value: "profile.md") {
+                        Text(store.profileStatusMessage)
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(theme.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Picker("Profile mode", selection: $store.profileMode) {
+                    ForEach(ProfileEditorMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .controlSize(.small)
+                .labelsHidden()
+
+                Group {
+                    if store.profileMode == .edit {
+                        TextEditor(text: $store.profileMarkdown)
+                            .font(.system(size: 11.5, weight: .regular, design: .monospaced))
+                            .foregroundStyle(theme.text)
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                    } else {
+                        MarkdownPreview(markdown: store.profileMarkdown)
+                            .padding(10)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(theme.input)
+                .overlay {
+                    RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous)
+                        .strokeBorder(theme.inputBorder, lineWidth: 0.5)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: theme.innerRadius, style: .continuous))
+
+                HStack(spacing: 8) {
+                    GhostButton(systemName: "doc.on.clipboard", title: "Paste") {
+                        store.pasteProfileFromClipboard()
+                    }
+                    GhostButton(systemName: "doc.badge.plus", title: "Template") {
+                        store.resetProfileTemplate()
+                    }
+                    PillButton(systemName: "square.and.arrow.down", title: "Save", disabled: store.profileSubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                        store.saveProfile()
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .onAppear {
+            store.refreshProfileSubjects()
+        }
+    }
+}
+
+private struct MarkdownPreview: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let markdown: String
+
+    var body: some View {
+        let blocks = MarkdownBlock.parse(markdown)
+
+        ScrollView {
+            VStack(alignment: .leading, spacing: 9) {
+                ForEach(blocks) { block in
+                    MarkdownBlockView(block: block)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollIndicators(.hidden)
+    }
+}
+
+private struct MarkdownBlockView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let block: MarkdownBlock
+
+    var body: some View {
+        let theme = ArkivTheme(scheme: colorScheme)
+
+        switch block {
+        case .text(let value, let emphasis):
+            Text(attributedMarkdown(value))
+                .font(.system(size: emphasis ? 14 : 12, weight: emphasis ? .semibold : .regular))
+                .foregroundStyle(emphasis ? theme.text : theme.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        case .table(let rows):
+            Grid(alignment: .leading, horizontalSpacing: 7, verticalSpacing: 6) {
+                ForEach(rows.indices, id: \.self) { rowIndex in
+                    GridRow {
+                        ForEach(0..<rows.columnCount, id: \.self) { columnIndex in
+                            Text(rows.value(row: rowIndex, column: columnIndex))
+                                .font(.system(size: 10.5, weight: rowIndex == 0 || columnIndex == 0 ? .semibold : .regular))
+                                .foregroundStyle(rowIndex == 0 ? theme.text : theme.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(theme.fill.opacity(0.52))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+    }
+
+    private func attributedMarkdown(_ value: String) -> AttributedString {
+        (try? AttributedString(markdown: value)) ?? AttributedString(value)
+    }
+}
+
+private enum MarkdownBlock: Identifiable {
+    case text(String, emphasis: Bool)
+    case table([[String]])
+
+    var id: UUID { UUID() }
+
+    static func parse(_ markdown: String) -> [MarkdownBlock] {
+        let lines = markdown.components(separatedBy: .newlines)
+        var blocks: [MarkdownBlock] = []
+        var tableRows: [[String]] = []
+
+        func flushTable() {
+            guard !tableRows.isEmpty else { return }
+            blocks.append(.table(tableRows))
+            tableRows = []
+        }
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                flushTable()
+                continue
+            }
+
+            if trimmed.contains("|") {
+                let cells = trimmed
+                    .trimmingCharacters(in: CharacterSet(charactersIn: "|"))
+                    .split(separator: "|", omittingEmptySubsequences: false)
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+                let isSeparator = cells.allSatisfy { cell in
+                    !cell.isEmpty && cell.allSatisfy { character in
+                        character == "-" || character == ":"
+                    }
+                }
+
+                if !isSeparator {
+                    tableRows.append(cells)
+                }
+                continue
+            }
+
+            flushTable()
+            blocks.append(.text(trimmed, emphasis: trimmed.hasPrefix("**") && trimmed.hasSuffix("**")))
+        }
+
+        flushTable()
+        return blocks
+    }
+}
+
+private extension Array where Element == [String] {
+    var columnCount: Int {
+        map(\.count).max() ?? 0
+    }
+
+    func value(row: Int, column: Int) -> String {
+        guard indices.contains(row), self[row].indices.contains(column) else { return "" }
+        return self[row][column]
     }
 }
 

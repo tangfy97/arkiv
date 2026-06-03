@@ -27,6 +27,11 @@ final class SessionStore: ObservableObject {
     @Published var lastArchive: ArchiveBatch?
     @Published var watchFolderURL: URL
     @Published var archiveRootURL: URL
+    @Published var profileSubjects: [ProfileSubject] = []
+    @Published var profileSubjectName = ""
+    @Published var profileMarkdown = ""
+    @Published var profileMode: ProfileEditorMode = .edit
+    @Published var profileStatusMessage = "Choose a subject"
 
     var watchFolderDisplayName: String { displayPath(watchFolderURL) }
     var archiveRootDisplayName: String { displayPath(archiveRootURL) }
@@ -48,6 +53,7 @@ final class SessionStore: ObservableObject {
         self.usesDarkAppearance = UserDefaults.standard.bool(forKey: Self.darkAppearanceDefaultsKey)
         self.watchFolderURL = downloadsURL
         self.archiveRootURL = archiveRootURL
+        self.profileMarkdown = Self.defaultProfileTemplate
     }
 
     var sanitizedTargetName: String {
@@ -137,6 +143,21 @@ final class SessionStore: ObservableObject {
         usesDarkAppearance.toggle()
     }
 
+    func openProfiles() {
+        refreshProfileSubjects()
+        if profileSubjectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           !targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            profileSubjectName = sanitizedTargetName
+            loadProfileMarkdown(for: sanitizedTargetName)
+        }
+        profileMode = .edit
+        viewMode = .profiles
+    }
+
+    func closeProfiles() {
+        viewMode = .ready
+    }
+
     func startSession() {
         guard !targetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
@@ -211,6 +232,7 @@ final class SessionStore: ObservableObject {
         guard let url = chooseFolder(title: "Choose archive destination", defaultURL: archiveRootURL) else { return }
         archiveRootURL = url
         statusMessage = "Archive destination set"
+        refreshProfileSubjects()
     }
 
     func toggleSelection(for file: DetectedFile) {
@@ -290,6 +312,84 @@ final class SessionStore: ObservableObject {
         setName = ""
         searchText = ""
         filter = .all
+    }
+
+    func refreshProfileSubjects() {
+        let keys: Set<URLResourceKey> = [.isDirectoryKey, .isHiddenKey]
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: archiveRootURL,
+            includingPropertiesForKeys: Array(keys),
+            options: [.skipsHiddenFiles]
+        ) else {
+            profileSubjects = []
+            return
+        }
+
+        profileSubjects = urls.compactMap { url in
+            guard let values = try? url.resourceValues(forKeys: keys),
+                  values.isDirectory == true,
+                  values.isHidden != true,
+                  !url.lastPathComponent.hasPrefix(".")
+            else {
+                return nil
+            }
+
+            return ProfileSubject(
+                name: url.lastPathComponent,
+                url: url,
+                hasProfile: FileManager.default.fileExists(atPath: url.appendingPathComponent(Self.profileFileName).path)
+            )
+        }
+        .sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    func selectProfileSubject(_ subject: ProfileSubject) {
+        profileSubjectName = subject.name
+        loadProfileMarkdown(for: subject.name)
+    }
+
+    func loadProfileMarkdownForCurrentSubject() {
+        loadProfileMarkdown(for: profileSubjectName)
+    }
+
+    func resetProfileTemplate() {
+        profileMarkdown = Self.defaultProfileTemplate
+        profileStatusMessage = "Template loaded"
+    }
+
+    func pasteProfileFromClipboard() {
+        guard let text = NSPasteboard.general.string(forType: .string),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            profileStatusMessage = "Clipboard is empty"
+            return
+        }
+
+        profileMarkdown = text
+        profileMode = .preview
+        profileStatusMessage = "Pasted from clipboard"
+    }
+
+    func saveProfile() {
+        let subject = profileSubjectName.arkivSanitizedFileComponent
+        guard !subject.isEmpty else {
+            profileStatusMessage = "Subject required"
+            return
+        }
+
+        do {
+            let subjectFolder = archiveRootURL.appendingPathComponent(subject)
+            try FileManager.default.createDirectory(at: subjectFolder, withIntermediateDirectories: true)
+            let profileURL = subjectFolder.appendingPathComponent(Self.profileFileName)
+            try profileMarkdown.write(to: profileURL, atomically: true, encoding: .utf8)
+            profileSubjectName = subject
+            refreshProfileSubjects()
+            profileStatusMessage = "Saved profile.md"
+        } catch {
+            profileStatusMessage = "Save failed: \(error.localizedDescription)"
+        }
     }
 
     func scanWatchedFolder() {
@@ -539,6 +639,27 @@ final class SessionStore: ObservableObject {
         )
     }
 
+    private func loadProfileMarkdown(for subjectName: String) {
+        let subject = subjectName.arkivSanitizedFileComponent
+        guard !subject.isEmpty else {
+            profileMarkdown = Self.defaultProfileTemplate
+            profileStatusMessage = "Choose a subject"
+            return
+        }
+
+        let profileURL = archiveRootURL
+            .appendingPathComponent(subject)
+            .appendingPathComponent(Self.profileFileName)
+
+        if let text = try? String(contentsOf: profileURL, encoding: .utf8) {
+            profileMarkdown = text
+            profileStatusMessage = "Loaded profile.md"
+        } else {
+            profileMarkdown = Self.defaultProfileTemplate.replacingOccurrences(of: "[名字]", with: subject)
+            profileStatusMessage = "New profile"
+        }
+    }
+
     private func writeLedger(_ batch: ArchiveBatch) throws {
         let ledgerFolder = archiveRootURL.appendingPathComponent(".arkiv-ledger")
         try FileManager.default.createDirectory(at: ledgerFolder, withIntermediateDirectories: true)
@@ -702,6 +823,42 @@ final class SessionStore: ObservableObject {
 
     private static let archiveTypeFolderNames = ["Images", "Videos", "Other"]
     private static let maxSetDigits = 3
+    private static let profileFileName = "profile.md"
+    private static let defaultProfileTemplate = """
+**[名字]**
+**[年龄，18+]岁 · [身高描述，例如 203cm巨人竞技健美猛男]**
+
+**基本数据**
+
+| 项目 | 数值 |
+|---|---|
+| 年龄 | [年龄，18+]岁 |
+| 身高 | [身高]cm |
+| 体重 | [体重]kg |
+| 体型 | [体型描述，例如 竞技健美型，8块腹肌] |
+| 鸡巴 | [长度]cm长 × [粗度]cm粗，[头型描述，例如 大蘑菇头] |
+| 蛋蛋 | [描述，例如 大而饱满] |
+| 主要特征 | [关键视觉卖点，例如 完美hipster胡须 + 粉嫩多毛菊花 + 气泡臀] |
+
+**身体与气质专业评分**
+
+| 评估项目 | 星级 | 详细说明 |
+|---|---|---|
+| 肌肉线条与发达度 | ★★★★☆ | [1-2句话解释为什么这个分数] |
+| 鸡巴尺寸与质感 | ★★★★☆ | [1-2句话解释为什么这个分数] |
+| 屁股肥美与可玩度 | ★★★★★ | [1-2句话解释为什么这个分数] |
+| 体毛自然度 | ★★★☆☆ | [1-2句话解释为什么这个分数] |
+| 胡须与面部气质 | ★★★★☆ | [1-2句话解释为什么这个分数] |
+| 身高与体型视觉冲击 | ★★★★★ | [1-2句话解释为什么这个分数] |
+| 持久耐力与多轮能力 | ★★★★☆ | [1-2句话解释为什么这个分数] |
+| 表演欲与亲和力 | ★★★★☆ | [1-2句话解释为什么这个分数] |
+
+**服务风格与亮点**
+[在这里写1-2段服务风格描述：性格、擅长玩法、客户能获得什么体验、多轮能力、特殊可玩点等。语言直接、有画面感。]
+
+**会所核心保障**
+高潮迭起 · 不满意不付钱
+"""
 
     private static func formattedSetName(_ number: Int) -> String {
         "Set \(paddedSetNumber(number))"
